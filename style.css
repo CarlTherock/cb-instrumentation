@@ -2,9 +2,18 @@
 html { background:var(--bg); height:100%; height:-webkit-fill-available; }
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 body { margin:0; padding:0; height:100%; min-height:100dvh; min-height:-webkit-fill-available; background-color:#151113; color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; overscroll-behavior:none; }
+/* Bug WebKit #254868 : en mode PWA standalone avec viewport-fit=cover, dvh/svh/-webkit-fill-available
+   sous-évaluent la hauteur réelle (ils soustraient la zone sécurisée du bas). 100vh, lui, l'inclut
+   correctement dans ce mode précis — donc on bascule uniquement dans ce contexte. */
+@media all and (display-mode: standalone) {
+  html, body { height:100vh; min-height:100vh; }
+}
 button,input,select { font:inherit; }
 button { cursor:pointer; -webkit-user-select:none; user-select:none; }
 .app-shell { width:min(860px,100%); margin:0 auto; min-height:100dvh; padding:max(20px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(var(--nav-h) + 22px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left)); }
+@media all and (display-mode: standalone) {
+  .app-shell { min-height:100vh; }
+}
 .topbar-radio,.card-heading,.button-row,.signal-wrap,.keyword-item,.event-item,.alarm-panel,.stat-row { display:flex; align-items:center; }
 .topbar-radio { justify-content:space-between; gap:16px; padding:6px 2px 20px; }
 .brand-cb { font-size:clamp(30px,8vw,42px); font-weight:700; letter-spacing:.02em; font-family:Georgia,'Times New Roman','Playfair Display',serif; color:#fff; position:relative; padding-bottom:8px; display:inline-block; }
