@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#0b1220">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="CB Alerte">
+  <meta name="apple-mobile-web-app-title" content="RADIO TEI">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.svg">
   <link rel="stylesheet" href="style.css">
-  <title>CB Alerte</title>
+  <title>RADIO TEI</title>
 </head>
 <body>
   <div id="splashScreen" class="splash-screen">
@@ -18,10 +18,10 @@
     <p class="splash-label">CTR</p>
   </div>
   <main class="app-shell" id="appShell" hidden>
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">SURVEILLANCE RADIO</p>
-        <h1>CB Alerte</h1>
+    <header class="topbar-radio">
+      <div class="brand">
+        <h1>RADIO TEI</h1>
+        <p class="brand-subtitle">Surveillance radio CB</p>
       </div>
       <div id="statusPill" class="status-pill status-off">ARRÊTÉ</div>
     </header>
@@ -58,154 +58,190 @@
           <span id="signalText">Silence</span>
         </div>
       </div>
-
       <div class="meter" aria-label="Niveau audio"><div id="meterFill" class="meter-fill"></div></div>
       <p class="hint">Place le téléphone près du haut-parleur CB et garde cette page ouverte.</p>
-
-      <div class="button-row">
-        <button id="startButton" class="button button-primary">DÉMARRER L’ÉCOUTE</button>
-        <button id="stopButton" class="button button-secondary" disabled>ARRÊTER</button>
-        <button id="testButton" class="button button-secondary">TESTER L’ALARME</button>
-      </div>
-      <div class="button-row">
-        <button id="ambientButton" class="button button-secondary" type="button">MESURER LE BRUIT AMBIANT</button>
-        <button id="ambientChartsToggle" class="button button-secondary" type="button">AFFICHER LES GRAPHIQUES</button>
-      </div>
-      <p id="ambientResult" class="hint ambient-result" hidden></p>
-      <div id="ambientCharts" class="ambient-charts" hidden>
-        <div class="chart-block" id="levelChartBlock" tabindex="0" role="button">
-          <p class="chart-label">Niveau relatif — dernière mesure (%) <span class="chart-tap-hint">toucher pour agrandir</span></p>
-          <canvas id="levelChart" width="300" height="70"></canvas>
-          <p class="chart-stat" id="levelChartStat">σ = —</p>
-        </div>
-        <div class="chart-block" id="freqChartBlock" tabindex="0" role="button">
-          <p class="chart-label">Spectre de fréquences — dernière mesure (0 à ~4300 Hz, amplitude relative) <span class="chart-tap-hint">toucher pour agrandir</span></p>
-          <canvas id="freqChart" width="300" height="70"></canvas>
-          <p class="chart-stat" id="freqChartStat">σ = —</p>
-        </div>
-        <div class="chart-block" id="baselineChartBlock" tabindex="0" role="button">
-          <p class="chart-label">Stabilisation de la calibration automatique <span class="chart-tap-hint">toucher pour agrandir</span></p>
-          <canvas id="baselineChart" width="300" height="70"></canvas>
-          <p class="chart-stat" id="baselineChartStat">σ = —</p>
-        </div>
-        <p class="hint">Ces graphiques montrent un niveau relatif, pas un vrai dB SPL calibré (ça demanderait un micro de référence). Un σ (écart-type) bas signifie que le bruit est stable.</p>
-      </div>
-
-      <div id="chartModal" class="chart-modal" hidden>
-        <div class="chart-modal-inner">
-          <div class="chart-modal-header">
-            <h2 id="chartModalTitle">—</h2>
-            <button id="chartModalClose" class="player-close" type="button" aria-label="Fermer">×</button>
-          </div>
-          <p id="chartModalAxis" class="chart-axis-label">—</p>
-          <canvas id="chartModalCanvas" width="640" height="280"></canvas>
-          <p id="chartModalReadout" class="chart-readout">Touche ou glisse sur le graphique pour voir une valeur précise.</p>
-          <p id="chartModalStats" class="chart-stats">—</p>
-        </div>
-      </div>
-
-      <details class="advanced">
-        <summary>Réglages d’écoute</summary>
-        <label class="field-label" for="languageSelect">Langue de reconnaissance</label>
-        <select id="languageSelect">
-          <option value="fr-CA">Français (Canada)</option>
-          <option value="en-CA">Anglais (Canada)</option>
-          <option value="en-US">Anglais (États-Unis)</option>
-        </select>
-        <label class="field-label toggle-label" for="sensitiveToggle"><input id="sensitiveToggle" type="checkbox"> Écoute plus sensible (détecte les mots-clés dès qu’ils sont entendus, sans attendre la fin de la phrase)</label>
-        <label class="field-label" for="meterSensitivityRange">Sensibilité du détecteur de son : <span id="meterSensitivityValue">Normale</span></label>
-        <input id="meterSensitivityRange" type="range" min="1" max="10" step="1" value="5">
-        <label class="field-label" for="soundSelect">Son d’alarme</label>
-        <select id="soundSelect">
-          <option value="police">Police (wail)</option>
-          <option value="ambulance">Ambulance (warble)</option>
-          <option value="pompier">Pompier (deux tons)</option>
-          <option value="klaxon">Klaxon</option>
-          <option value="sonnerie">Sonnerie téléphone</option>
-          <option value="cloche">Cloche</option>
-          <option value="corne">Corne de brume</option>
-          <option value="detecteur">Détecteur de fumée</option>
-          <option value="buzzer">Buzzer industriel</option>
-          <option value="raid">Sirène longue</option>
-          <option value="appel">Rejouer l’appel (20 s)</option>
-          <option value="original">Alarme originale</option>
-        </select>
-        <label class="field-label toggle-label" for="vibrateToggle"><input id="vibrateToggle" type="checkbox" checked> Faire vibrer le téléphone pendant l’alarme</label>
-        <label class="field-label" for="cooldownRange">Délai entre deux alarmes : <span id="cooldownValue">0 s</span></label>
-        <input id="cooldownRange" type="range" min="0" max="60" step="5" value="0">
-        <p class="hint">Change la langue si les appels radio sont surtout en anglais. Le changement s’applique au prochain démarrage de l’écoute. Appuie sur SNOOZE pour arrêter l’alarme — l’app te proposera d’écouter les 20 dernières secondes.</p>
-        <p class="hint">La vibration ne fonctionne pas sur iPhone (limite d’Apple/Safari), seulement sur certains appareils Android.</p>
-        <p class="hint">L’écoute plus sensible peut déclencher un peu plus de fausses alertes. Utilise « Mesurer le bruit ambiant » pour évaluer le niveau sonore de la pièce avant d’ajuster.</p>
-      </details>
     </section>
 
-    <section class="card transcript-card">
+    <section class="card transcript-card-main">
       <div class="card-heading">
         <div>
-          <h2>Texte entendu</h2>
+          <h2>TEXTE ENTENDU</h2>
           <p>Utilise cette zone pendant les essais pour ajouter les variantes réellement reconnues.</p>
         </div>
         <button id="clearTranscriptButton" class="text-button">EFFACER</button>
       </div>
-      <div id="transcriptLive" class="transcript-live">L’écoute n’est pas démarrée.</div>
+      <div id="transcriptLive" class="transcript-live-big">En attente d’une transmission radio…</div>
       <div id="transcriptHistory" class="transcript-history" aria-live="polite"></div>
     </section>
 
-    <section class="card keywords-card">
-      <div class="card-heading">
-        <div>
-          <h2>Mots à surveiller</h2>
-          <p>Les mots « immédiats » déclenchent l’alarme seuls. Les mots « contexte » exigent deux mots de ce type dans les 8 secondes.</p>
-        </div>
+    <nav class="bottom-nav" aria-label="Navigation principale">
+      <button id="navSettingsButton" class="nav-btn" type="button" aria-label="Réglages">
+        <span class="nav-icon" aria-hidden="true">⚙️</span><span class="nav-label">Réglages</span>
+      </button>
+      <button id="navChartsButton" class="nav-btn" type="button" aria-label="Graphiques">
+        <span class="nav-icon" aria-hidden="true">📊</span><span class="nav-label">Graphiques</span>
+      </button>
+      <div class="nav-main-wrap">
+        <button id="startButton" class="nav-btn-main nav-btn-main--start" type="button">
+          <span class="nav-main-icon" aria-hidden="true">🎙️</span><span class="nav-main-label">DÉMARRER<br>L’ÉCOUTE</span>
+        </button>
+        <button id="stopButton" class="nav-btn-main nav-btn-main--stop" type="button" disabled hidden>
+          <span class="nav-main-icon" aria-hidden="true">■</span><span class="nav-main-label">ARRÊTER<br>L’ÉCOUTE</span>
+        </button>
       </div>
+      <button id="navWordsButton" class="nav-btn" type="button" aria-label="Mots">
+        <span class="nav-icon" aria-hidden="true">🔤</span><span class="nav-label">Mots</span>
+      </button>
+      <button id="navHistoryButton" class="nav-btn" type="button" aria-label="Historique">
+        <span class="nav-icon" aria-hidden="true">🕘</span><span class="nav-label">Historique</span>
+      </button>
+    </nav>
 
-      <form id="keywordForm" class="keyword-form">
-        <label>
-          Mot ou expression
-          <input id="phraseInput" required maxlength="80" placeholder="Ex. appel instrumentation">
-        </label>
-        <label>
-          Variantes séparées par des virgules <span class="optional">(facultatif)</span>
-          <input id="variantsInput" maxlength="240" placeholder="Ex. té i, ti, t i">
-        </label>
-        <label>
-          Type d’alarme
-          <select id="modeInput">
-            <option value="immediate">Alarme immédiate</option>
-            <option value="context">Mot avec contexte</option>
+    <div id="settingsModal" class="sheet-modal" hidden>
+      <div class="sheet-inner">
+        <div class="sheet-header"><h2>Réglages</h2><button id="settingsCloseButton" class="player-close" type="button" aria-label="Fermer">×</button></div>
+        <div class="sheet-body">
+          <button id="testButton" class="button button-secondary sheet-full-btn" type="button">TESTER L’ALARME</button>
+
+          <label class="field-label" for="languageSelect">Langue de reconnaissance</label>
+          <select id="languageSelect">
+            <option value="fr-CA">Français (Canada)</option>
+            <option value="en-CA">Anglais (Canada)</option>
+            <option value="en-US">Anglais (États-Unis)</option>
           </select>
-        </label>
-        <button class="button button-primary" type="submit">+ AJOUTER</button>
-      </form>
-      <div id="keywordList" class="keyword-list"></div>
-    </section>
 
-    <section class="card events-card">
-      <div class="card-heading">
-        <div>
-          <h2>Historique des alertes</h2>
-          <p>Conservé seulement sur cet appareil.</p>
+          <label class="field-label toggle-label" for="sensitiveToggle"><input id="sensitiveToggle" type="checkbox"> Écoute plus sensible (détecte les mots-clés dès qu’ils sont entendus, sans attendre la fin de la phrase)</label>
+
+          <label class="field-label" for="meterSensitivityRange">Sensibilité du détecteur de son : <span id="meterSensitivityValue">Normale</span></label>
+          <input id="meterSensitivityRange" type="range" min="1" max="10" step="1" value="5">
+
+          <label class="field-label" for="soundSelect">Son d’alarme</label>
+          <select id="soundSelect">
+            <option value="police">Police (wail)</option>
+            <option value="ambulance">Ambulance (warble)</option>
+            <option value="pompier">Pompier (deux tons)</option>
+            <option value="klaxon">Klaxon</option>
+            <option value="sonnerie">Sonnerie téléphone</option>
+            <option value="cloche">Cloche</option>
+            <option value="corne">Corne de brume</option>
+            <option value="detecteur">Détecteur de fumée</option>
+            <option value="buzzer">Buzzer industriel</option>
+            <option value="raid">Sirène longue</option>
+            <option value="appel">Rejouer l’appel (20 s)</option>
+            <option value="original">Alarme originale</option>
+          </select>
+
+          <label class="field-label toggle-label" for="vibrateToggle"><input id="vibrateToggle" type="checkbox" checked> Faire vibrer le téléphone pendant l’alarme</label>
+
+          <label class="field-label" for="cooldownRange">Délai entre deux alarmes : <span id="cooldownValue">0 s</span></label>
+          <input id="cooldownRange" type="range" min="0" max="60" step="5" value="0">
+
+          <p class="hint">Change la langue si les appels radio sont surtout en anglais. Le changement s’applique au prochain démarrage de l’écoute. Appuie sur SNOOZE pour arrêter l’alarme — l’app te proposera d’écouter les 20 dernières secondes.</p>
+          <p class="hint">La vibration ne fonctionne pas sur iPhone (limite d’Apple/Safari), seulement sur certains appareils Android.</p>
+          <p class="hint">L’écoute plus sensible peut déclencher un peu plus de fausses alertes. Utilise « Graphiques » pour évaluer le niveau sonore de la pièce avant d’ajuster.</p>
         </div>
-        <button id="clearHistoryButton" class="text-button">EFFACER</button>
       </div>
-      <div id="recordingPlayer" class="recording-player" hidden>
-        <button id="playerToggle" class="player-toggle" type="button" aria-label="Lecture/Pause">▶</button>
-        <input id="playerSeek" class="player-seek" type="range" min="0" max="100" step="0.1" value="0">
-        <span id="playerTime" class="player-time">0:00 / 0:00</span>
-        <button id="playerClose" class="player-close" type="button" aria-label="Fermer">×</button>
-      </div>
-      <div id="eventList" class="event-list"><p class="empty">Aucune alerte pour le moment.</p></div>
-    </section>
+    </div>
 
-    <section class="card tips-card">
-      <h2>Avant de partir</h2>
-      <ol>
-        <li>Installe l’app sur l’écran d’accueil de ton iPhone.</li>
-        <li>Ouvre-la, branche le téléphone si possible, puis appuie sur « Démarrer l’écoute ».</li>
-        <li>Autorise le microphone et fais un test avec le CB.</li>
-        <li>Garde l’application ouverte et le volume du CB assez fort pour que le téléphone entende clairement les voix.</li>
-      </ol>
-    </section>
+    <div id="chartsModal" class="sheet-modal" hidden>
+      <div class="sheet-inner">
+        <div class="sheet-header"><h2>Graphiques</h2><button id="chartsCloseButton" class="player-close" type="button" aria-label="Fermer">×</button></div>
+        <div class="sheet-body">
+          <div class="stat-row">
+            <div class="stat-box"><span id="alertsTodayCount" class="stat-number">0</span><span class="stat-label">Alertes aujourd’hui</span></div>
+            <div class="stat-box"><span id="transmissionsTodayCount" class="stat-number">0</span><span class="stat-label">Transmissions reconnues</span></div>
+          </div>
+          <div class="chart-block">
+            <p class="chart-label">Alertes par heure (aujourd’hui)</p>
+            <canvas id="alertsPerHourChart" width="300" height="70"></canvas>
+          </div>
+
+          <div class="button-row">
+            <button id="ambientButton" class="button button-secondary" type="button">MESURER LE BRUIT AMBIANT</button>
+            <button id="ambientChartsToggle" class="button button-secondary" type="button">AFFICHER LES GRAPHIQUES</button>
+          </div>
+          <p id="ambientResult" class="hint ambient-result" hidden></p>
+          <div id="ambientCharts" class="ambient-charts" hidden>
+            <div class="chart-block" id="levelChartBlock" tabindex="0" role="button">
+              <p class="chart-label">Niveau relatif — dernière mesure (%) <span class="chart-tap-hint">toucher pour agrandir</span></p>
+              <canvas id="levelChart" width="300" height="70"></canvas>
+              <p class="chart-stat" id="levelChartStat">σ = —</p>
+            </div>
+            <div class="chart-block" id="freqChartBlock" tabindex="0" role="button">
+              <p class="chart-label">Spectre de fréquences — dernière mesure (0 à ~4300 Hz, amplitude relative) <span class="chart-tap-hint">toucher pour agrandir</span></p>
+              <canvas id="freqChart" width="300" height="70"></canvas>
+              <p class="chart-stat" id="freqChartStat">σ = —</p>
+            </div>
+            <div class="chart-block" id="baselineChartBlock" tabindex="0" role="button">
+              <p class="chart-label">Stabilisation de la calibration automatique <span class="chart-tap-hint">toucher pour agrandir</span></p>
+              <canvas id="baselineChart" width="300" height="70"></canvas>
+              <p class="chart-stat" id="baselineChartStat">σ = —</p>
+            </div>
+            <p class="hint">Ces graphiques montrent un niveau relatif, pas un vrai dB SPL calibré (ça demanderait un micro de référence). Un σ (écart-type) bas signifie que le bruit est stable.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="chartModal" class="chart-modal" hidden>
+      <div class="chart-modal-inner">
+        <div class="chart-modal-header">
+          <h2 id="chartModalTitle">—</h2>
+          <button id="chartModalClose" class="player-close" type="button" aria-label="Fermer">×</button>
+        </div>
+        <p id="chartModalAxis" class="chart-axis-label">—</p>
+        <canvas id="chartModalCanvas" width="640" height="280"></canvas>
+        <p id="chartModalReadout" class="chart-readout">Touche ou glisse sur le graphique pour voir une valeur précise.</p>
+        <p id="chartModalStats" class="chart-stats">—</p>
+      </div>
+    </div>
+
+    <div id="wordsModal" class="sheet-modal" hidden>
+      <div class="sheet-inner">
+        <div class="sheet-header"><h2>Mots à surveiller</h2><button id="wordsCloseButton" class="player-close" type="button" aria-label="Fermer">×</button></div>
+        <div class="sheet-body">
+          <p class="hint">Les mots « immédiats » déclenchent l’alarme seuls. Les mots « contexte » exigent deux mots de ce type dans les 8 secondes.</p>
+          <form id="keywordForm" class="keyword-form">
+            <label>
+              Mot ou expression
+              <input id="phraseInput" required maxlength="80" placeholder="Ex. appel instrumentation">
+            </label>
+            <label>
+              Variantes séparées par des virgules <span class="optional">(facultatif)</span>
+              <input id="variantsInput" maxlength="240" placeholder="Ex. té i, ti, t i">
+            </label>
+            <label>
+              Type d’alarme
+              <select id="modeInput">
+                <option value="immediate">Alarme immédiate</option>
+                <option value="context">Mot avec contexte</option>
+              </select>
+            </label>
+            <button class="button button-primary" type="submit">+ AJOUTER</button>
+          </form>
+          <div id="keywordList" class="keyword-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="historyModal" class="sheet-modal" hidden>
+      <div class="sheet-inner">
+        <div class="sheet-header"><h2>Historique des alertes</h2><button id="historyCloseButton" class="player-close" type="button" aria-label="Fermer">×</button></div>
+        <div class="sheet-body">
+          <div class="card-heading">
+            <p class="hint">Conservé seulement sur cet appareil.</p>
+            <button id="clearHistoryButton" class="text-button">EFFACER</button>
+          </div>
+          <div id="recordingPlayer" class="recording-player" hidden>
+            <button id="playerToggle" class="player-toggle" type="button" aria-label="Lecture/Pause">▶</button>
+            <input id="playerSeek" class="player-seek" type="range" min="0" max="100" step="0.1" value="0">
+            <span id="playerTime" class="player-time">0:00 / 0:00</span>
+            <button id="playerClose" class="player-close" type="button" aria-label="Fermer">×</button>
+          </div>
+          <div id="eventList" class="event-list"><p class="empty">Aucune alerte pour le moment.</p></div>
+        </div>
+      </div>
+    </div>
   </main>
   <script src="app.js"></script>
 </body>
