@@ -19,7 +19,8 @@
   const ui = {
     statusPill: $('statusPill'), statusText: $('statusText'), signalDot: $('signalDot'), signalText: $('signalText'),
     meterFill: $('meterFill'), start: $('startButton'), stop: $('stopButton'), test: $('testButton'),
-    ambientButton: $('ambientButton'), ambientResult: $('ambientResult'),
+    ambientButton: $('ambientButton'), ambientResult: $('ambientResult'), ambientChartsToggle: $('ambientChartsToggle'), ambientCharts: $('ambientCharts'),
+    levelChart: $('levelChart'), freqChart: $('freqChart'), baselineChart: $('baselineChart'),
     splashScreen: $('splashScreen'), appShell: $('appShell'),
     language: $('languageSelect'), sensitiveToggle: $('sensitiveToggle'), meterSensitivity: $('meterSensitivityRange'), meterSensitivityValue: $('meterSensitivityValue'),
     soundSelect: $('soundSelect'), vibrateToggle: $('vibrateToggle'), cooldown: $('cooldownRange'), cooldownValue: $('cooldownValue'),
@@ -43,6 +44,7 @@
   let lastTriggerId = null, lastTriggerRecentText = '';
   let playerBuffer = null, playerSource = null, playerOffset = 0, playerStartedAt = 0, playerIsPlaying = false, playerRAF = null;
   let ambientSamples = [], ambientBaseline = 6, ambientSampleInterval = null;
+  let baselineHistory = [], lastLevelSamples = [], lastFreqSnapshot = [], chartsVisible = false;
 
   function load(key, fallback) { try { const value = JSON.parse(localStorage.getItem(key)); return value ?? fallback; } catch { return fallback; } }
   function save(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
@@ -431,6 +433,35 @@
   }
   async function requestWakeLock() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch {} }
   async function releaseWakeLock() { try { await wakeLock?.release(); } catch {} wakeLock = null; }
+  function drawLineChart(canvas, values, color) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d'); const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    if (!values.length) { ctx.fillStyle = '#5b7086'; ctx.font = '11px sans-serif'; ctx.fillText('Pas encore de données', 8, h / 2); return; }
+    const max = Math.max(...values, 1); const min = 0;
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+    values.forEach((v, i) => {
+      const x = (i / (values.length - 1 || 1)) * w;
+      const y = h - ((v - min) / (max - min || 1)) * (h - 6) - 3;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+  function drawBarChart(canvas, values, color) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d'); const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    if (!values.length) { ctx.fillStyle = '#5b7086'; ctx.font = '11px sans-serif'; ctx.fillText('Pas encore de données', 8, h / 2); return; }
+    const max = Math.max(...values, 1); const barWidth = w / values.length;
+    ctx.fillStyle = color;
+    values.forEach((v, i) => { const barHeight = (v / max) * (h - 3); ctx.fillRect(i * barWidth, h - barHeight, Math.max(1, barWidth - 1), barHeight); });
+  }
+  function redrawCharts() {
+    if (!chartsVisible) return;
+    drawLineChart(ui.levelChart, lastLevelSamples, '#36a9ff');
+    drawBarChart(ui.freqChart, lastFreqSnapshot, '#35d07f');
+    drawLineChart(ui.baselineChart, baselineHistory.map(item => item.value), '#ffb020');
+  }
   function getMeterThreshold() {
     const margin = 12 - Number(settings.meterSensitivity || 5);
     return Math.min(90, Math.max(1, ambientBaseline + margin));
@@ -446,6 +477,8 @@
       const sorted = [...ambientSamples].sort((a, b) => a - b);
       const median = sorted[Math.floor(sorted.length / 2)];
       ambientBaseline = ambientBaseline * 0.6 + median * 0.4;
+      baselineHistory.push({ t: Date.now(), value: ambientBaseline }); baselineHistory = baselineHistory.slice(-60);
+      redrawCharts();
     }
   }
   function updateMeter() {
@@ -476,6 +509,11 @@
       const verdict = avg < 8 ? 'calme' : avg < 20 ? 'modéré' : 'bruyant';
       ui.ambientResult.textContent = `Bruit ambiant (instantané) : ${avg.toFixed(0)}% en moyenne (pic ${max.toFixed(0)}%) — ${verdict}. Référence auto-calibrée : ${ambientBaseline.toFixed(0)}%. Seuil actuel du détecteur : ${getMeterThreshold().toFixed(0)}%.`;
       ui.ambientResult.hidden = false;
+      lastLevelSamples = samples.filter((_, i) => i % 3 === 0);
+      const freqData = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(freqData);
+      lastFreqSnapshot = Array.from(freqData.slice(0, 100));
+      redrawCharts();
       ambientMeasuring = false; ui.ambientButton.disabled = false; ui.ambientButton.textContent = 'MESURER LE BRUIT AMBIANT';
     };
     sample();
@@ -544,6 +582,12 @@
   ui.clearTranscript.addEventListener('click', () => { transcriptRows = []; ui.transcriptHistory.innerHTML = ''; ui.live.textContent = listening ? 'Écoute en cours…' : 'L’écoute n’est pas démarrée.'; });
   ui.clearHistory.addEventListener('click', () => { events = []; save(HISTORY_KEY, events); renderEvents(); });
   ui.ambientButton.addEventListener('click', measureAmbientNoise);
+  ui.ambientChartsToggle.addEventListener('click', () => {
+    chartsVisible = !chartsVisible;
+    ui.ambientCharts.hidden = !chartsVisible;
+    ui.ambientChartsToggle.textContent = chartsVisible ? 'MASQUER LES GRAPHIQUES' : 'AFFICHER LES GRAPHIQUES';
+    if (chartsVisible) redrawCharts();
+  });
   ui.language.value = settings.language; ui.soundSelect.value = settings.sound; ui.cooldown.value = settings.cooldown; ui.cooldownValue.textContent = `${settings.cooldown} s`;
   ui.vibrateToggle.checked = settings.vibrate !== false;
   ui.sensitiveToggle.checked = !!settings.sensitive;
