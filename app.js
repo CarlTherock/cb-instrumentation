@@ -21,6 +21,10 @@
     meterFill: $('meterFill'), start: $('startButton'), stop: $('stopButton'), test: $('testButton'),
     ambientButton: $('ambientButton'), ambientResult: $('ambientResult'), ambientChartsToggle: $('ambientChartsToggle'), ambientCharts: $('ambientCharts'),
     levelChart: $('levelChart'), freqChart: $('freqChart'), baselineChart: $('baselineChart'),
+    levelChartBlock: $('levelChartBlock'), freqChartBlock: $('freqChartBlock'), baselineChartBlock: $('baselineChartBlock'),
+    levelChartStat: $('levelChartStat'), freqChartStat: $('freqChartStat'), baselineChartStat: $('baselineChartStat'),
+    chartModal: $('chartModal'), chartModalTitle: $('chartModalTitle'), chartModalAxis: $('chartModalAxis'), chartModalCanvas: $('chartModalCanvas'),
+    chartModalReadout: $('chartModalReadout'), chartModalStats: $('chartModalStats'), chartModalClose: $('chartModalClose'),
     splashScreen: $('splashScreen'), appShell: $('appShell'),
     language: $('languageSelect'), sensitiveToggle: $('sensitiveToggle'), meterSensitivity: $('meterSensitivityRange'), meterSensitivityValue: $('meterSensitivityValue'),
     soundSelect: $('soundSelect'), vibrateToggle: $('vibrateToggle'), cooldown: $('cooldownRange'), cooldownValue: $('cooldownValue'),
@@ -44,7 +48,8 @@
   let lastTriggerId = null, lastTriggerRecentText = '';
   let playerBuffer = null, playerSource = null, playerOffset = 0, playerStartedAt = 0, playerIsPlaying = false, playerRAF = null;
   let ambientSamples = [], ambientBaseline = 6, ambientSampleInterval = null;
-  let baselineHistory = [], lastLevelSamples = [], lastFreqSnapshot = [], chartsVisible = false;
+  let baselineHistory = [], lastLevelSamples = [], lastFreqSnapshot = [], lastFreqSampleRate = 44100, chartsVisible = false;
+  let chartModalData = null, chartModalDragging = false;
 
   function load(key, fallback) { try { const value = JSON.parse(localStorage.getItem(key)); return value ?? fallback; } catch { return fallback; } }
   function save(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
@@ -456,11 +461,75 @@
     ctx.fillStyle = color;
     values.forEach((v, i) => { const barHeight = (v / max) * (h - 3); ctx.fillRect(i * barWidth, h - barHeight, Math.max(1, barWidth - 1), barHeight); });
   }
+  function computeStdDev(values) {
+    if (!values.length) return 0;
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length;
+    return Math.sqrt(variance);
+  }
+  function stabilityHint(std, kind) {
+    if (kind === 'baseline') return std < 1 ? 'très stable' : std < 3 ? 'stable' : 'encore en ajustement';
+    return std < 3 ? 'stable' : std < 8 ? 'modérément variable' : 'très variable';
+  }
   function redrawCharts() {
     if (!chartsVisible) return;
     drawLineChart(ui.levelChart, lastLevelSamples, '#36a9ff');
     drawBarChart(ui.freqChart, lastFreqSnapshot, '#35d07f');
     drawLineChart(ui.baselineChart, baselineHistory.map(item => item.value), '#ffb020');
+    const levelStd = computeStdDev(lastLevelSamples);
+    const freqStd = computeStdDev(lastFreqSnapshot);
+    const baselineStd = computeStdDev(baselineHistory.map(item => item.value));
+    ui.levelChartStat.textContent = lastLevelSamples.length ? `σ = ${levelStd.toFixed(1)}% (${stabilityHint(levelStd, 'level')})` : 'σ = —';
+    ui.freqChartStat.textContent = lastFreqSnapshot.length ? `σ = ${freqStd.toFixed(1)}` : 'σ = —';
+    ui.baselineChartStat.textContent = baselineHistory.length >= 3 ? `σ = ${baselineStd.toFixed(1)}% (${stabilityHint(baselineStd, 'baseline')})` : 'σ = — (pas encore assez de mesures)';
+  }
+  function openChartModal(config) {
+    chartModalData = config;
+    ui.chartModalTitle.textContent = config.title;
+    ui.chartModalAxis.textContent = config.axisLabel;
+    const std = computeStdDev(config.values);
+    ui.chartModalStats.textContent = config.values.length ? `Écart-type (σ) : ${std.toFixed(1)}${config.unit || ''} — ${stabilityHint(std, config.kind)}` : 'Pas encore assez de données.';
+    ui.chartModalReadout.textContent = 'Touche ou glisse sur le graphique pour voir une valeur précise.';
+    ui.chartModal.hidden = false;
+    drawModalChart();
+  }
+  function closeChartModal() { ui.chartModal.hidden = true; chartModalData = null; }
+  function drawModalChart(cursorIndex) {
+    if (!chartModalData) return;
+    const canvas = ui.chartModalCanvas; const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    const values = chartModalData.values;
+    if (!values.length) { ctx.fillStyle = '#5b7086'; ctx.font = '13px sans-serif'; ctx.fillText('Pas encore de données', 12, h / 2); return; }
+    const max = Math.max(...values, 1); const min = 0; const pad = 12;
+    if (chartModalData.style === 'bar') {
+      const barWidth = w / values.length;
+      ctx.fillStyle = chartModalData.color;
+      values.forEach((v, i) => { const bh = ((v - min) / (max - min || 1)) * (h - pad * 2); ctx.fillRect(i * barWidth, h - pad - bh, Math.max(1, barWidth - 1), bh); });
+    } else {
+      ctx.strokeStyle = chartModalData.color; ctx.lineWidth = 2; ctx.beginPath();
+      values.forEach((v, i) => {
+        const x = (i / (values.length - 1 || 1)) * w;
+        const y = h - pad - ((v - min) / (max - min || 1)) * (h - pad * 2);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+    if (cursorIndex != null) {
+      const x = (cursorIndex / (values.length - 1 || 1)) * w;
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+  function handleChartPointer(evt) {
+    if (!chartModalData || !chartModalData.values.length) return;
+    const canvas = ui.chartModalCanvas; const rect = canvas.getBoundingClientRect();
+    const relX = (evt.clientX - rect.left) / rect.width;
+    const index = Math.max(0, Math.min(chartModalData.values.length - 1, Math.round(relX * (chartModalData.values.length - 1))));
+    const value = chartModalData.values[index];
+    const label = chartModalData.labelFn ? chartModalData.labelFn(index) : `#${index}`;
+    ui.chartModalReadout.textContent = `${label} → ${value.toFixed(1)}${chartModalData.unit || ''}`;
+    drawModalChart(index);
   }
   function getMeterThreshold() {
     const margin = 12 - Number(settings.meterSensitivity || 5);
@@ -513,6 +582,7 @@
       const freqData = new Uint8Array(analyser.frequencyBinCount);
       analyser.getByteFrequencyData(freqData);
       lastFreqSnapshot = Array.from(freqData.slice(0, 100));
+      lastFreqSampleRate = audioContext.sampleRate;
       redrawCharts();
       ambientMeasuring = false; ui.ambientButton.disabled = false; ui.ambientButton.textContent = 'MESURER LE BRUIT AMBIANT';
     };
@@ -588,6 +658,33 @@
     ui.ambientChartsToggle.textContent = chartsVisible ? 'MASQUER LES GRAPHIQUES' : 'AFFICHER LES GRAPHIQUES';
     if (chartsVisible) redrawCharts();
   });
+  ui.levelChartBlock.addEventListener('click', () => {
+    const duration = 3;
+    openChartModal({
+      title: 'Niveau relatif — dernière mesure', kind: 'level', style: 'line', color: '#36a9ff', unit: '%',
+      values: lastLevelSamples, axisLabel: 'Axe X : temps écoulé pendant la mesure (0 à 3 s) — Axe Y : niveau relatif (0 à 100 %)',
+      labelFn: i => `t ≈ ${((i / (lastLevelSamples.length - 1 || 1)) * duration).toFixed(1)} s`
+    });
+  });
+  ui.freqChartBlock.addEventListener('click', () => {
+    openChartModal({
+      title: 'Spectre de fréquences — dernière mesure', kind: 'freq', style: 'bar', color: '#35d07f', unit: '',
+      values: lastFreqSnapshot, axisLabel: 'Axe X : fréquence (0 à ~4300 Hz) — Axe Y : amplitude relative (0 à 255, non calibrée)',
+      labelFn: i => `${Math.round(i * lastFreqSampleRate / 1024)} Hz`
+    });
+  });
+  ui.baselineChartBlock.addEventListener('click', () => {
+    const values = baselineHistory.map(item => item.value);
+    openChartModal({
+      title: 'Stabilisation de la calibration automatique', kind: 'baseline', style: 'line', color: '#ffb020', unit: '%',
+      values, axisLabel: 'Axe X : temps (un point toutes les ~20 s) — Axe Y : référence de bruit ambiant (%)',
+      labelFn: i => { const item = baselineHistory[i]; const secondsAgo = item ? Math.round((Date.now() - item.t) / 1000) : 0; return `il y a ${secondsAgo} s`; }
+    });
+  });
+  ui.chartModalClose.addEventListener('click', closeChartModal);
+  ui.chartModalCanvas.addEventListener('pointerdown', event => { chartModalDragging = true; handleChartPointer(event); });
+  ui.chartModalCanvas.addEventListener('pointermove', event => { if (chartModalDragging) handleChartPointer(event); });
+  window.addEventListener('pointerup', () => { chartModalDragging = false; });
   ui.language.value = settings.language; ui.soundSelect.value = settings.sound; ui.cooldown.value = settings.cooldown; ui.cooldownValue.textContent = `${settings.cooldown} s`;
   ui.vibrateToggle.checked = settings.vibrate !== false;
   ui.sensitiveToggle.checked = !!settings.sensitive;
