@@ -698,6 +698,49 @@
   ui.keywordForm.addEventListener('submit', event => { event.preventDefault(); const phrase = ui.phraseInput.value.trim(); if (!phrase) return; const normalized = normalize(phrase); if (keywords.some(item => normalize(item.phrase) === normalized)) { alert('Ce mot ou cette expression est déjà dans la liste.'); return; } const variants = ui.variantsInput.value.split(',').map(value => value.trim()).filter(Boolean); keywords.push({ id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, phrase, variants, mode: ui.modeInput.value }); save(STORAGE_KEY, keywords); renderKeywords(); ui.keywordForm.reset(); ui.modeInput.value = 'immediate'; });
   ui.start.addEventListener('click', startListening); ui.stop.addEventListener('click', stopListening);
   ui.test.addEventListener('click', async () => { await ensureRunningAudioContext(); triggerAlarm('TEST D’ALARME', 'Test manuel effectué.'); });
+  ui.diagnosticButton = $('diagnosticButton'); ui.diagnosticPanel = $('diagnosticPanel'); ui.diagnosticOutput = $('diagnosticOutput'); ui.diagnosticClose = $('diagnosticClose');
+  function runViewportDiagnostic() {
+    const lines = [];
+    lines.push(`window.innerHeight : ${window.innerHeight}`);
+    lines.push(`window.innerWidth  : ${window.innerWidth}`);
+    lines.push(`visualViewport.h   : ${window.visualViewport ? Math.round(window.visualViewport.height) : 'n/a'}`);
+    lines.push(`documentElement.clientHeight : ${document.documentElement.clientHeight}`);
+    lines.push(`body.scrollHeight  : ${document.body.scrollHeight}`);
+    lines.push(`documentElement.scrollHeight : ${document.documentElement.scrollHeight}`);
+    lines.push(`display-mode standalone : ${window.matchMedia('(display-mode: standalone)').matches}`);
+    lines.push(`navigator.standalone    : ${window.navigator.standalone}`);
+    const cs = getComputedStyle(document.documentElement);
+    lines.push(`safe-area-inset-bottom (calc via test div) : mesuré ci-dessous`);
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden;';
+    document.body.appendChild(probe);
+    const probeHeight = probe.getBoundingClientRect().height;
+    probe.remove();
+    lines.push(`env(safe-area-inset-bottom) mesuré : ${Math.round(probeHeight)}px`);
+    const nav = document.querySelector('.bottom-nav');
+    if (nav) {
+      const rect = nav.getBoundingClientRect();
+      lines.push('');
+      lines.push('--- .bottom-nav ---');
+      lines.push(`top=${Math.round(rect.top)} bottom=${Math.round(rect.bottom)} height=${Math.round(rect.height)}`);
+      lines.push(`écart entre bas du nav et bas de l'écran : ${Math.round(window.innerHeight - rect.bottom)}px`);
+    }
+    lines.push('');
+    lines.push('--- Éléments qui dépassent window.innerHeight ---');
+    const overflowing = [];
+    document.querySelectorAll('body *').forEach(el => {
+      const rect = el.getBoundingClientRect();
+      if (rect.height > 0 && rect.bottom > window.innerHeight + 2) {
+        const cls = typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).join('.') : '';
+        overflowing.push(`${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}${cls} → bottom=${Math.round(rect.bottom)} height=${Math.round(rect.height)}`);
+      }
+    });
+    if (!overflowing.length) lines.push('(aucun élément ne dépasse — le HTML/CSS ne cause pas de débordement mesurable)');
+    else lines.push(...overflowing.slice(0, 20));
+    return lines.join('\n');
+  }
+  ui.diagnosticButton.addEventListener('click', () => { ui.diagnosticOutput.textContent = runViewportDiagnostic(); ui.diagnosticPanel.hidden = false; });
+  ui.diagnosticClose.addEventListener('click', () => { ui.diagnosticPanel.hidden = true; });
   ui.silence.addEventListener('click', snoozeAlarm);
   ui.snoozeListen.addEventListener('click', async () => {
     const rec = callRecordings.find(item => item.id === lastTriggerId);
