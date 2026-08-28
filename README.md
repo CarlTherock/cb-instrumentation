@@ -78,9 +78,25 @@ Tout est stocké localement sur l'appareil (`localStorage`) : mots-clés, régla
 - Section « Avant de partir » retirée
 - **Aucune logique de détection, d'alarme ou de stockage n'a été modifiée dans cette phase — seulement l'interface.**
 
+### Phase 5 — Icônes professionnelles et corrections de fuites de minuteurs
+- **Bug corrigé** : `startTorchFlash()`, `startVibrateLoop()` et `startAlarmSoundLoop()` ne s'arrêtaient pas elles-mêmes avant de redémarrer. Si une alarme se redéclenchait pendant qu'une autre était encore active (possible avec un délai entre alarmes à 0 s), un minuteur pouvait rester orphelin — sa référence était écrasée, donc plus rien ne pouvait l'arrêter. C'est ce qui causait la lampe torche qui continuait de flasher après SNOOZE. Les trois fonctions s'arrêtent maintenant toujours elles-mêmes avant de redémarrer (idempotentes).
+- **Bug corrigé** : un double appui rapide sur « Démarrer l'écoute » pouvait démarrer une deuxième session micro/reconnaissance en parallèle sans arrêter proprement la première, laissant la barre de son bloquée en mode « actif » même après avoir appuyé sur Arrêter. Un garde-fou empêche maintenant tout double démarrage, et « Arrêter » force systématiquement l'arrêt de tous les minuteurs d'alarme actifs par mesure de sécurité.
+- Tous les emojis (⚙️ 📊 🎙️ 🔤 🕘 ⚠ ■) remplacés par des icônes SVG en trait fin (2 px), inline dans le HTML, aucune dépendance externe
+- Bouton principal DÉMARRER/ARRÊTER restructuré : icône à gauche du texte, plus large que les autres boutons
+- Boutons secondaires (Réglages, Graphiques, Mots, Historique) : fond bleu-gris foncé sobre, bordure fine, sans dégradé ni effet lumineux
+- **Aucune logique de reconnaissance vocale, de mots-clés, de stockage ou de service worker n'a été modifiée dans cette phase**, à l'exception des deux corrections de bugs ci-dessus (minuteurs orphelins et double démarrage)
+
 ---
 
-## Limites connues
+## Points de restauration (commits GitHub)
+
+Chaque phase correspond à un ou plusieurs commits. En cas de problème, l'historique complet est consultable dans l'onglet **Commits** du dépôt — chaque fichier peut être restauré individuellement depuis n'importe quel commit passé.
+
+| Point de restauration | Commit (début) | Description |
+|---|---|---|
+| Avant Phase 5 (icônes SVG + correctifs) | `215a02af` | Dernier état avec emojis, avant le remplacement par les icônes SVG |
+| Avant Phase 4 (refonte RADIO TEI) | `6fc7f1fb` | Dernier état de l'ancienne interface « CB Alerte » (cartes empilées, sans barre de navigation) |
+
 
 - Aucune écoute possible écran verrouillé ou en arrière-plan sur iPhone (limite Apple/WebKit, voir plus haut)
 - Vibration inactive sur iPhone
