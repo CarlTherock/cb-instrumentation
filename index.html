@@ -115,6 +115,7 @@
         <div class="sheet-header"><h2>Réglages</h2><button id="settingsCloseButton" class="player-close" type="button" aria-label="Fermer">×</button></div>
         <div class="sheet-body">
           <button id="testButton" class="button button-secondary sheet-full-btn icon-btn" type="button" aria-label="Tester l’alarme"><svg class="icon icon-warn" aria-hidden="true"><use href="#icon-warning"></use></svg><span>TESTER L’ALARME</span></button>
+          <button id="diagnosticButton" class="button button-secondary sheet-full-btn" type="button">DIAGNOSTIC AFFICHAGE</button>
 
           <label class="field-label" for="languageSelect">Langue de reconnaissance</label>
           <select id="languageSelect">
@@ -254,6 +255,15 @@
           </div>
           <div id="eventList" class="event-list"><p class="empty">Aucune alerte pour le moment.</p></div>
         </div>
+      </div>
+    </div>
+    <div id="diagnosticPanel" class="chart-modal" hidden>
+      <div class="chart-modal-inner">
+        <div class="chart-modal-header">
+          <h2>Diagnostic affichage</h2>
+          <button id="diagnosticClose" class="player-close" type="button" aria-label="Fermer">×</button>
+        </div>
+        <pre id="diagnosticOutput" style="white-space:pre-wrap;font-size:12px;line-height:1.5;color:#dbe8f6;background:#0b1725;border:1px solid var(--line);border-radius:10px;padding:12px;max-height:60vh;overflow-y:auto;"></pre>
       </div>
     </div>
   </main>
