@@ -726,6 +726,13 @@
     const probeHeight = probe.getBoundingClientRect().height;
     probe.remove();
     lines.push(`env(safe-area-inset-bottom) mesuré : ${Math.round(probeHeight)}px`);
+    ['vh', 'dvh', 'svh'].forEach(unit => {
+      const p = document.createElement('div');
+      p.style.cssText = `position:fixed;top:0;left:0;width:0;height:100${unit};visibility:hidden;`;
+      document.body.appendChild(p);
+      lines.push(`100${unit} mesuré : ${Math.round(p.getBoundingClientRect().height)}px`);
+      p.remove();
+    });
     const anyModalOpen = ['settingsModal', 'chartsModal', 'wordsModal', 'historyModal'].some(id => { const el = document.getElementById(id); return el && !el.hidden; });
     lines.push(`panneau ouvert pendant la mesure : ${anyModalOpen ? 'OUI (peut fausser les résultats ci-dessous)' : 'non — écran principal seul'}`);
     const nav = document.querySelector('.bottom-nav');
