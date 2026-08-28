@@ -38,6 +38,10 @@ select,input { width:100%; color:var(--text); background:#091522; border:1px sol
 .player-seek { flex:1 1 auto; accent-color:var(--blue); }
 .player-time { flex:0 0 auto; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .ambient-result { margin-top:10px; padding:10px 12px; background:#0b1725; border:1px solid var(--line); border-radius:10px; color:#dbe8f6; }
+.ambient-charts { margin-top:12px; display:flex; flex-direction:column; gap:14px; }
+.ambient-charts[hidden] { display:none; }
+.chart-block canvas { width:100%; height:70px; display:block; background:#0b1725; border:1px solid var(--line); border-radius:10px; }
+.chart-label { font-size:12px; color:var(--muted); margin:0 0 6px; }
 body.alarming { overflow:hidden; } @keyframes alarmFlash { 0%,49% { background:#c8102e; } 50%,100% { background:#ffffff; } }
 @media (max-width:700px) { .keyword-form { grid-template-columns:1fr; }.keyword-form .button { width:100%; }.card { padding:15px; }.alarm-panel .button { width:100%; }.topbar { align-items:flex-start; }.card-heading { flex-wrap:wrap; } }
 .splash-screen { position:fixed; inset:0; z-index:99999; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; background:radial-gradient(circle at 50% 40%,#0f2338,#050c16 75%); opacity:1; transition:opacity .5s ease; }
