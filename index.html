@@ -13,6 +13,17 @@
   <title>RADIO TEI</title>
 </head>
 <body>
+  <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.35a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.65 15a1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.65a1.7 1.7 0 0 0 1.04-1.56V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.65a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.35 9c.11.35.3.68.56.96.26.28.6.48.96.6.11.04.23.06.35.08H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1.04Z"/></symbol>
+      <symbol id="icon-chart" viewBox="0 0 24 24"><line x1="4" y1="20" x2="4" y2="12"/><line x1="10" y1="20" x2="10" y2="6"/><line x1="16" y1="20" x2="16" y2="14"/><line x1="21" y1="20" x2="21" y2="9"/><line x1="2" y1="20" x2="22" y2="20"/></symbol>
+      <symbol id="icon-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></symbol>
+      <symbol id="icon-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+      <symbol id="icon-list" viewBox="0 0 24 24"><line x1="9" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/><line x1="4" y1="6" x2="4.01" y2="6"/><line x1="4" y1="12" x2="4.01" y2="12"/><line x1="4" y1="18" x2="4.01" y2="18"/></symbol>
+      <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></symbol>
+      <symbol id="icon-warning" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3Z"/><line x1="12" y1="9" x2="12" y2="14"/><line x1="12" y1="17.5" x2="12" y2="17.51"/></symbol>
+    </defs>
+  </svg>
   <div id="splashScreen" class="splash-screen">
     <p class="splash-title">TEI</p>
     <p class="splash-label">CTR</p>
@@ -27,7 +38,7 @@
     </header>
 
     <section id="alarmPanel" class="alarm-panel" aria-live="assertive" hidden>
-      <div class="alarm-icon">⚠</div>
+      <div class="alarm-icon"><svg class="icon icon-xl" aria-hidden="true"><use href="#icon-warning"></use></svg></div>
       <div>
         <p class="eyebrow">APPEL DE SERVICE DÉTECTÉ</p>
         <h2 id="alarmWord">—</h2>
@@ -76,24 +87,24 @@
 
     <nav class="bottom-nav" aria-label="Navigation principale">
       <button id="navSettingsButton" class="nav-btn" type="button" aria-label="Réglages">
-        <span class="nav-icon" aria-hidden="true">⚙️</span><span class="nav-label">Réglages</span>
+        <svg class="icon nav-icon-svg" aria-hidden="true"><use href="#icon-settings"></use></svg><span class="nav-label">Réglages</span>
       </button>
       <button id="navChartsButton" class="nav-btn" type="button" aria-label="Graphiques">
-        <span class="nav-icon" aria-hidden="true">📊</span><span class="nav-label">Graphiques</span>
+        <svg class="icon nav-icon-svg" aria-hidden="true"><use href="#icon-chart"></use></svg><span class="nav-label">Graphiques</span>
       </button>
       <div class="nav-main-wrap">
-        <button id="startButton" class="nav-btn-main nav-btn-main--start" type="button">
-          <span class="nav-main-icon" aria-hidden="true">🎙️</span><span class="nav-main-label">DÉMARRER<br>L’ÉCOUTE</span>
+        <button id="startButton" class="nav-btn-main nav-btn-main--start" type="button" aria-label="Démarrer l’écoute">
+          <svg class="icon nav-main-icon-svg" aria-hidden="true"><use href="#icon-mic"></use></svg><span class="nav-main-label">DÉMARRER L’ÉCOUTE</span>
         </button>
-        <button id="stopButton" class="nav-btn-main nav-btn-main--stop" type="button" disabled hidden>
-          <span class="nav-main-icon" aria-hidden="true">■</span><span class="nav-main-label">ARRÊTER<br>L’ÉCOUTE</span>
+        <button id="stopButton" class="nav-btn-main nav-btn-main--stop" type="button" disabled hidden aria-label="Arrêter l’écoute">
+          <svg class="icon nav-main-icon-svg" aria-hidden="true"><use href="#icon-stop"></use></svg><span class="nav-main-label">ARRÊTER L’ÉCOUTE</span>
         </button>
       </div>
       <button id="navWordsButton" class="nav-btn" type="button" aria-label="Mots">
-        <span class="nav-icon" aria-hidden="true">🔤</span><span class="nav-label">Mots</span>
+        <svg class="icon nav-icon-svg" aria-hidden="true"><use href="#icon-list"></use></svg><span class="nav-label">Mots</span>
       </button>
       <button id="navHistoryButton" class="nav-btn" type="button" aria-label="Historique">
-        <span class="nav-icon" aria-hidden="true">🕘</span><span class="nav-label">Historique</span>
+        <svg class="icon nav-icon-svg" aria-hidden="true"><use href="#icon-clock"></use></svg><span class="nav-label">Historique</span>
       </button>
     </nav>
 
@@ -101,7 +112,7 @@
       <div class="sheet-inner">
         <div class="sheet-header"><h2>Réglages</h2><button id="settingsCloseButton" class="player-close" type="button" aria-label="Fermer">×</button></div>
         <div class="sheet-body">
-          <button id="testButton" class="button button-secondary sheet-full-btn" type="button">TESTER L’ALARME</button>
+          <button id="testButton" class="button button-secondary sheet-full-btn icon-btn" type="button" aria-label="Tester l’alarme"><svg class="icon icon-warn" aria-hidden="true"><use href="#icon-warning"></use></svg><span>TESTER L’ALARME</span></button>
 
           <label class="field-label" for="languageSelect">Langue de reconnaissance</label>
           <select id="languageSelect">
