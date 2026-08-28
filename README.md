@@ -86,6 +86,16 @@ Tout est stocké localement sur l'appareil (`localStorage`) : mots-clés, régla
 - Boutons secondaires (Réglages, Graphiques, Mots, Historique) : fond bleu-gris foncé sobre, bordure fine, sans dégradé ni effet lumineux
 - **Aucune logique de reconnaissance vocale, de mots-clés, de stockage ou de service worker n'a été modifiée dans cette phase**, à l'exception des deux corrections de bugs ci-dessus (minuteurs orphelins et double démarrage)
 
+### Phase 6 — Rebranding CB, correction de boucle de rétroaction, sécurisation de l'écran
+- **Bug corrigé** : réécouter un enregistrement (historique ou après une alarme) pouvait faire boucler l'alarme indéfiniment — le haut-parleur du téléphone rejouait le mot-clé, le micro le recaptait, ce qui redéclenchait l'alarme. L'écoute s'arrête maintenant automatiquement avant toute réécoute.
+- Icônes de l'app (`icon-192.svg`, `icon-512.svg`) : c'étaient en fait des fichiers PNG mal nommés `.svg` — remplacés par de vraies images SVG
+- Nouvelle image de marque « CB » (lettres blanches serif, soulignement rouge) — remplace « RADIO TEI » dans le titre, l'en-tête, le manifeste et le splash screen (« by CTR » en dessous)
+- Bouton principal Démarrer/Arrêter devenu un simple bouton rond sans texte (micro vert / carré rouge)
+- Ajout d'un bouton « haut-parleur » dans le lecteur de l'historique (volume fort par défaut, via le même circuit audio que l'alarme)
+- Volume maximal de l'alarme augmenté à nouveau (compresseur resserré, gain de sortie à 3.4)
+- Mot-clé « Instrument » passé de « contexte » à « immédiat » par défaut, avec migration automatique des mots déjà enregistrés sur l'appareil
+- CSS durci pour éliminer une bande non couverte par le thème sombre en bas de l'écran (zone sécurisée iPhone)
+
 ---
 
 ## Points de restauration (commits GitHub)
@@ -94,6 +104,7 @@ Chaque phase correspond à un ou plusieurs commits. En cas de problème, l'histo
 
 | Point de restauration | Commit (début) | Description |
 |---|---|---|
+| Avant Phase 6 (rebranding CB + correctifs) | `513cae21` | Dernier état avec la marque « RADIO TEI » et les icônes PNG mal nommées |
 | Avant Phase 5 (icônes SVG + correctifs) | `215a02af` | Dernier état avec emojis, avant le remplacement par les icônes SVG |
 | Avant Phase 4 (refonte RADIO TEI) | `6fc7f1fb` | Dernier état de l'ancienne interface « CB Alerte » (cartes empilées, sans barre de navigation) |
 
