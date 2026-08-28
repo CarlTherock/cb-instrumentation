@@ -1,7 +1,7 @@
-:root { color-scheme: dark; --bg:#07101d; --card:#111d2d; --card2:#16263a; --text:#f4f7fb; --muted:#a8b6c9; --line:#263a53; --blue:#36a9ff; --red:#ff4d5d; --orange:#ff9d2f; --green:#35d07f; --nav-h:84px; }
+:root { color-scheme: dark; --bg:#151113; --card:#1c1719; --card2:#221c1f; --text:#f4f7fb; --muted:#a8b6c9; --line:#332b2e; --blue:#36a9ff; --red:#ff4d5d; --orange:#ff9d2f; --green:#35d07f; --nav-h:84px; }
 html { background:var(--bg); height:100%; height:-webkit-fill-available; }
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-body { margin:0; padding:0; height:100%; min-height:100dvh; min-height:-webkit-fill-available; background-color:#07101d; background-image:linear-gradient(155deg,#07101d 0%,#0a1726 48%,#081522 100%); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; overscroll-behavior:none; }
+body { margin:0; padding:0; height:100%; min-height:100dvh; min-height:-webkit-fill-available; background-color:#151113; color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; overscroll-behavior:none; }
 button,input,select { font:inherit; }
 button { cursor:pointer; -webkit-user-select:none; user-select:none; }
 .app-shell { width:min(860px,100%); margin:0 auto; min-height:100dvh; padding:max(20px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(var(--nav-h) + 22px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left)); }
@@ -84,19 +84,19 @@ body.alarming { overflow:hidden; } @keyframes alarmFlash { 0%,49% { background:#
 .event-word { display:flex; align-items:center; gap:6px; }
 
 /* Bottom navigation bar */
-.bottom-nav { position:fixed; left:0; right:0; bottom:0; z-index:600; display:flex; align-items:stretch; gap:7px; padding:9px max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left)); background-color:#0a1420; border-top:1px solid var(--line); }
+.bottom-nav { position:fixed; left:0; right:0; bottom:0; z-index:600; display:flex; align-items:center; gap:7px; padding:9px max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left)); background-color:#151113; border-top:1px solid var(--line); }
 .bottom-nav::after { content:""; position:absolute; left:0; right:0; top:100%; height:40px; background:#0a1420; }
 .nav-btn { flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-height:52px; border:1px solid #1d2f44; border-radius:12px; background:#101d2e; color:var(--muted); padding:6px 2px; }
 .nav-btn:active { filter:brightness(.82); }
 .nav-icon-svg { width:21px; height:21px; }
 .nav-label { font-size:10px; font-weight:800; letter-spacing:.02em; white-space:nowrap; }
-.nav-main-wrap { flex:0 0 auto; width:118px; display:flex; align-items:center; justify-content:center; }
-.nav-btn-main { width:112px; height:112px; border:1px solid rgba(255,255,255,.1); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(0,0,0,.35); flex-shrink:0; }
+.nav-main-wrap { flex:0 0 auto; width:64px; display:flex; align-items:center; justify-content:center; }
+.nav-btn-main { width:60px; height:60px; border:1px solid rgba(255,255,255,.1); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(0,0,0,.35); flex-shrink:0; }
 .nav-btn-main--start { background:var(--green); color:#052a17; }
 .nav-btn-main--stop { background:#c8102e; color:#fff; }
 .nav-btn-main:active { filter:brightness(.88); }
 .nav-btn-main[hidden] { display:none; }
-.nav-main-icon-svg { width:48px; height:48px; flex:0 0 auto; stroke-width:2; }
+.nav-main-icon-svg { width:26px; height:26px; flex:0 0 auto; stroke-width:2.2; }
 
 /* Sheet-style modal panels (Réglages, Graphiques, Mots, Historique) */
 .sheet-modal { position:fixed; top:0; right:0; bottom:0; left:0; z-index:900; display:flex; align-items:flex-end; justify-content:center; background:rgba(4,10,18,.72); }
