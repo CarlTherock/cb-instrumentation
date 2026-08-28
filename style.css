@@ -90,13 +90,13 @@ body.alarming { overflow:hidden; } @keyframes alarmFlash { 0%,49% { background:#
 .nav-btn:active { filter:brightness(.82); }
 .nav-icon-svg { width:21px; height:21px; }
 .nav-label { font-size:10px; font-weight:800; letter-spacing:.02em; white-space:nowrap; }
-.nav-main-wrap { flex:0 0 auto; width:64px; display:flex; align-items:center; justify-content:center; }
-.nav-btn-main { width:60px; height:60px; border:1px solid rgba(255,255,255,.1); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(0,0,0,.35); flex-shrink:0; }
+.nav-main-wrap { flex:0 0 auto; width:96px; display:flex; align-items:center; justify-content:center; }
+.nav-btn-main { width:90px; height:90px; border:1px solid rgba(255,255,255,.1); border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(0,0,0,.35); flex-shrink:0; }
 .nav-btn-main--start { background:var(--green); color:#052a17; }
 .nav-btn-main--stop { background:#c8102e; color:#fff; }
 .nav-btn-main:active { filter:brightness(.88); }
 .nav-btn-main[hidden] { display:none; }
-.nav-main-icon-svg { width:26px; height:26px; flex:0 0 auto; stroke-width:2.2; }
+.nav-main-icon-svg { width:39px; height:39px; flex:0 0 auto; stroke-width:2.2; }
 
 /* Sheet-style modal panels (Réglages, Graphiques, Mots, Historique) */
 .sheet-modal { position:fixed; inset:0; z-index:900; display:flex; align-items:flex-end; justify-content:center; background:rgba(4,10,18,.72); }
