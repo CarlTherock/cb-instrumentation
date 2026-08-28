@@ -67,6 +67,10 @@
         <button id="stopButton" class="button button-secondary" disabled>ARRÊTER</button>
         <button id="testButton" class="button button-secondary">TESTER L’ALARME</button>
       </div>
+      <div class="button-row">
+        <button id="ambientButton" class="button button-secondary" type="button">MESURER LE BRUIT AMBIANT</button>
+      </div>
+      <p id="ambientResult" class="hint ambient-result" hidden></p>
 
       <details class="advanced">
         <summary>Réglages d’écoute</summary>
@@ -76,6 +80,9 @@
           <option value="en-CA">Anglais (Canada)</option>
           <option value="en-US">Anglais (États-Unis)</option>
         </select>
+        <label class="field-label toggle-label" for="sensitiveToggle"><input id="sensitiveToggle" type="checkbox"> Écoute plus sensible (détecte les mots-clés dès qu’ils sont entendus, sans attendre la fin de la phrase)</label>
+        <label class="field-label" for="meterSensitivityRange">Sensibilité du détecteur de son : <span id="meterSensitivityValue">Normale</span></label>
+        <input id="meterSensitivityRange" type="range" min="1" max="10" step="1" value="5">
         <label class="field-label" for="soundSelect">Son d’alarme</label>
         <select id="soundSelect">
           <option value="police">Police (wail)</option>
@@ -96,6 +103,7 @@
         <input id="cooldownRange" type="range" min="0" max="60" step="5" value="0">
         <p class="hint">Change la langue si les appels radio sont surtout en anglais. Le changement s’applique au prochain démarrage de l’écoute. Appuie sur SNOOZE pour arrêter l’alarme — l’app te proposera d’écouter les 20 dernières secondes.</p>
         <p class="hint">La vibration ne fonctionne pas sur iPhone (limite d’Apple/Safari), seulement sur certains appareils Android.</p>
+        <p class="hint">L’écoute plus sensible peut déclencher un peu plus de fausses alertes. Utilise « Mesurer le bruit ambiant » pour évaluer le niveau sonore de la pièce avant d’ajuster.</p>
       </details>
     </section>
 
