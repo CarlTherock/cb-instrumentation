@@ -2,6 +2,7 @@
   const STORAGE_KEY = 'cbAlerteKeywordsV1';
   const SETTINGS_KEY = 'cbAlerteSettingsV1';
   const HISTORY_KEY = 'cbAlerteHistoryV1';
+  const DAILY_STATS_KEY = 'cbAlerteDailyStatsV1';
   const CONTEXT_WINDOW = 8000;
   const RECORD_SECONDS = 20;
   const MAX_RECORDINGS = 5;
@@ -33,7 +34,13 @@
     alarmPanel: $('alarmPanel'), alarmWord: $('alarmWord'), alarmDetail: $('alarmDetail'), silence: $('silenceButton'),
     snoozePanel: $('snoozeConfirmPanel'), snoozeText: $('snoozeConfirmText'), snoozeListen: $('snoozeListenButton'), snoozeAck: $('snoozeAckButton'),
     player: $('recordingPlayer'), playerToggle: $('playerToggle'), playerSeek: $('playerSeek'), playerTime: $('playerTime'), playerClose: $('playerClose'),
-    eventList: $('eventList'), clearHistory: $('clearHistoryButton')
+    eventList: $('eventList'), clearHistory: $('clearHistoryButton'),
+    navSettings: $('navSettingsButton'), navCharts: $('navChartsButton'), navWords: $('navWordsButton'), navHistory: $('navHistoryButton'),
+    settingsModal: $('settingsModal'), settingsClose: $('settingsCloseButton'),
+    chartsModal: $('chartsModal'), chartsClose: $('chartsCloseButton'),
+    wordsModal: $('wordsModal'), wordsClose: $('wordsCloseButton'),
+    historyModal: $('historyModal'), historyClose: $('historyCloseButton'),
+    alertsTodayCount: $('alertsTodayCount'), transmissionsTodayCount: $('transmissionsTodayCount'), alertsPerHourChart: $('alertsPerHourChart')
   };
 
   let keywords = load(STORAGE_KEY, DEFAULT_KEYWORDS).map((item, index) => ({ id: item.id || `${Date.now()}-${index}`, ...item }));
@@ -75,7 +82,7 @@
     ui.eventList.querySelectorAll('.replay-button').forEach(button => button.addEventListener('click', () => playStoredRecording(button.dataset.id)));
   }
   function escapeHtml(value) { const node = document.createElement('span'); node.textContent = value; return node.innerHTML; }
-  function setStatus(on, text) { ui.statusPill.textContent = on ? 'ÉCOUTE ACTIVE' : 'ARRÊTÉ'; ui.statusPill.className = `status-pill ${on ? 'status-on' : 'status-off'}`; ui.statusText.textContent = text; ui.start.disabled = on; ui.stop.disabled = !on; }
+  function setStatus(on, text) { ui.statusPill.textContent = on ? 'ÉCOUTE ACTIVE' : 'ARRÊTÉ'; ui.statusPill.className = `status-pill ${on ? 'status-on' : 'status-off'}`; ui.statusText.textContent = text; ui.start.disabled = on; ui.stop.disabled = !on; ui.start.hidden = on; ui.stop.hidden = !on; }
 
   function matchKeyword(keyword, normalizedText) {
     const candidates = [keyword.phrase, ...(keyword.variants || [])].map(normalize);
@@ -111,6 +118,7 @@
     if (!isFinal) return;
     transcriptRows.unshift({ text, time: nowLabel(), ts: Date.now() }); transcriptRows = transcriptRows.slice(0, 12);
     ui.transcriptHistory.innerHTML = transcriptRows.map(row => `<div class="transcript-row"><span class="transcript-time">${row.time}</span>${escapeHtml(row.text)}</div>`).join('');
+    bumpDailyStat('transmissions');
   }
 
   function triggerAlarm(word, text) {
@@ -121,7 +129,7 @@
     ui.alarmDetail.textContent = `Entendu : « ${text} »`;
     ui.alarmPanel.hidden = false; document.body.classList.add('alarming');
     const eventId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    events.unshift({ id: eventId, word, text, time: nowLabel() }); events = events.slice(0, 80); save(HISTORY_KEY, events);
+    events.unshift({ id: eventId, word, text, time: nowLabel(), ts: Date.now() }); events = events.slice(0, 80); save(HISTORY_KEY, events);
     const snapshot = getRecordedSnapshot();
     if (snapshot && audioContext) { callRecordings.unshift({ id: eventId, data: snapshot, sampleRate: audioContext.sampleRate }); callRecordings = callRecordings.slice(0, MAX_RECORDINGS); }
     const cutoff = Date.now() - RECORD_SECONDS * 1000;
@@ -131,6 +139,8 @@
     if (settings.vibrate !== false) startVibrateLoop();
     startAlarmSoundLoop();
     startTorchFlash();
+    bumpDailyStat('alerts');
+    renderGraphStats();
   }
   function snoozeAlarm() {
     ui.alarmPanel.hidden = true; document.body.classList.remove('alarming');
@@ -471,6 +481,33 @@
     if (kind === 'baseline') return std < 1 ? 'très stable' : std < 3 ? 'stable' : 'encore en ajustement';
     return std < 3 ? 'stable' : std < 8 ? 'modérément variable' : 'très variable';
   }
+  function getTodayDateKey(date = new Date()) { return date.toLocaleDateString('en-CA'); }
+  function bumpDailyStat(kind) {
+    const today = getTodayDateKey();
+    const stats = load(DAILY_STATS_KEY, { date: today, alerts: 0, transmissions: 0 });
+    if (stats.date !== today) { stats.date = today; stats.alerts = 0; stats.transmissions = 0; }
+    stats[kind] = (stats[kind] || 0) + 1;
+    save(DAILY_STATS_KEY, stats);
+  }
+  function renderGraphStats() {
+    const today = getTodayDateKey();
+    const stats = load(DAILY_STATS_KEY, { date: today, alerts: 0, transmissions: 0 });
+    const todaysAlerts = stats.date === today ? (stats.alerts || 0) : 0;
+    const todaysTransmissions = stats.date === today ? (stats.transmissions || 0) : 0;
+    if (ui.alertsTodayCount) ui.alertsTodayCount.textContent = todaysAlerts;
+    if (ui.transmissionsTodayCount) ui.transmissionsTodayCount.textContent = todaysTransmissions;
+    if (ui.alertsPerHourChart) {
+      const now = new Date();
+      const hourly = new Array(24).fill(0);
+      events.forEach(event => {
+        if (!event.ts) return;
+        const eventDate = new Date(event.ts);
+        if (getTodayDateKey(eventDate) !== getTodayDateKey(now)) return;
+        hourly[eventDate.getHours()] += 1;
+      });
+      drawBarChart(ui.alertsPerHourChart, hourly, '#36a9ff');
+    }
+  }
   function redrawCharts() {
     if (!chartsVisible) return;
     drawLineChart(ui.levelChart, lastLevelSamples, '#36a9ff');
@@ -649,8 +686,8 @@
   ui.playerToggle.addEventListener('click', () => { if (playerIsPlaying) playerPause(); else playerPlay(); });
   ui.playerSeek.addEventListener('input', () => { playerOffset = Number(ui.playerSeek.value); updatePlayerTimeLabel(); if (playerIsPlaying) playerPlay(); });
   ui.playerClose.addEventListener('click', closePlayer);
-  ui.clearTranscript.addEventListener('click', () => { transcriptRows = []; ui.transcriptHistory.innerHTML = ''; ui.live.textContent = listening ? 'Écoute en cours…' : 'L’écoute n’est pas démarrée.'; });
-  ui.clearHistory.addEventListener('click', () => { events = []; save(HISTORY_KEY, events); renderEvents(); });
+  ui.clearTranscript.addEventListener('click', () => { transcriptRows = []; ui.transcriptHistory.innerHTML = ''; ui.live.textContent = listening ? 'Écoute en cours…' : 'En attente d’une transmission radio…'; });
+  ui.clearHistory.addEventListener('click', () => { if (!confirm('Effacer tout l’historique des alertes ?')) return; events = []; save(HISTORY_KEY, events); renderEvents(); renderGraphStats(); });
   ui.ambientButton.addEventListener('click', measureAmbientNoise);
   ui.ambientChartsToggle.addEventListener('click', () => {
     chartsVisible = !chartsVisible;
@@ -700,6 +737,20 @@
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && listening) requestWakeLock(); });
   window.addEventListener('beforeunload', () => { if (listening) stopListening(); });
   if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.warn));
+  function openSheet(modalEl) { if (modalEl) modalEl.hidden = false; }
+  function closeSheet(modalEl) { if (modalEl) modalEl.hidden = true; }
+  ui.navSettings.addEventListener('click', () => openSheet(ui.settingsModal));
+  ui.navCharts.addEventListener('click', () => { openSheet(ui.chartsModal); renderGraphStats(); });
+  ui.navWords.addEventListener('click', () => openSheet(ui.wordsModal));
+  ui.navHistory.addEventListener('click', () => openSheet(ui.historyModal));
+  ui.settingsClose.addEventListener('click', () => closeSheet(ui.settingsModal));
+  ui.chartsClose.addEventListener('click', () => closeSheet(ui.chartsModal));
+  ui.wordsClose.addEventListener('click', () => closeSheet(ui.wordsModal));
+  ui.historyClose.addEventListener('click', () => closeSheet(ui.historyModal));
+  [ui.settingsModal, ui.chartsModal, ui.wordsModal, ui.historyModal].forEach(modalEl => {
+    modalEl.addEventListener('click', event => { if (event.target === modalEl) closeSheet(modalEl); });
+  });
+  renderGraphStats();
   renderKeywords(); renderEvents(); setStatus(false, 'Prêt à écouter le haut-parleur CB.');
   setTimeout(() => {
     ui.appShell.hidden = false;
