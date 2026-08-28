@@ -778,6 +778,37 @@
   [ui.settingsModal, ui.chartsModal, ui.wordsModal, ui.historyModal].forEach(modalEl => {
     modalEl.addEventListener('click', event => { if (event.target === modalEl) closeSheet(modalEl); });
   });
+
+  // Correctif : sur iOS, une PWA ajoutée à l'écran d'accueil peut voir sa zone visible
+  // rétrécir de façon permanente la première fois que le clavier s'ouvre sur un champ
+  // texte (ex. dans le panneau Mots), laissant une bande noire en bas jusqu'à fermeture
+  // complète de l'app. On force un recalcul de la mise en page après chaque perte de focus.
+  let maxViewportHeight = window.innerHeight;
+  window.addEventListener('resize', () => { maxViewportHeight = Math.max(maxViewportHeight, window.innerHeight); });
+  const viewportVeil = document.createElement('div');
+  viewportVeil.style.cssText = 'position:fixed;inset:0;z-index:100000;opacity:0;pointer-events:none;background:rgba(21,17,19,.3);backdrop-filter:blur(26px);-webkit-backdrop-filter:blur(26px);transition:opacity .2s ease-out;';
+  document.body.appendChild(viewportVeil);
+  function healViewport() {
+    if (maxViewportHeight - window.innerHeight <= 4) return;
+    const el = ui.appShell;
+    if (!el) return;
+    el.style.display = 'none';
+    void el.offsetHeight;
+    el.style.display = '';
+  }
+  document.addEventListener('blur', event => {
+    const tag = event.target && event.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+      setTimeout(() => {
+        if (maxViewportHeight - window.innerHeight <= 4) return;
+        viewportVeil.style.opacity = '1';
+        setTimeout(healViewport, 230);
+        setTimeout(() => { viewportVeil.style.transition = 'opacity .55s cubic-bezier(.32,.72,0,1)'; viewportVeil.style.opacity = '0'; }, 380);
+      }, 140);
+    }
+  }, true);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(healViewport, 200); });
+
   renderGraphStats();
   renderKeywords(); renderEvents(); setStatus(false, 'Prêt à écouter le haut-parleur CB.');
   setTimeout(() => {
