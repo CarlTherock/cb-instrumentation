@@ -73,19 +73,35 @@
       </div>
       <p id="ambientResult" class="hint ambient-result" hidden></p>
       <div id="ambientCharts" class="ambient-charts" hidden>
-        <div class="chart-block">
-          <p class="chart-label">Niveau relatif — dernière mesure (%)</p>
+        <div class="chart-block" id="levelChartBlock" tabindex="0" role="button">
+          <p class="chart-label">Niveau relatif — dernière mesure (%) <span class="chart-tap-hint">toucher pour agrandir</span></p>
           <canvas id="levelChart" width="300" height="70"></canvas>
+          <p class="chart-stat" id="levelChartStat">σ = —</p>
         </div>
-        <div class="chart-block">
-          <p class="chart-label">Spectre de fréquences — dernière mesure (0 à ~4300 Hz, amplitude relative)</p>
+        <div class="chart-block" id="freqChartBlock" tabindex="0" role="button">
+          <p class="chart-label">Spectre de fréquences — dernière mesure (0 à ~4300 Hz, amplitude relative) <span class="chart-tap-hint">toucher pour agrandir</span></p>
           <canvas id="freqChart" width="300" height="70"></canvas>
+          <p class="chart-stat" id="freqChartStat">σ = —</p>
         </div>
-        <div class="chart-block">
-          <p class="chart-label">Stabilisation de la calibration automatique</p>
+        <div class="chart-block" id="baselineChartBlock" tabindex="0" role="button">
+          <p class="chart-label">Stabilisation de la calibration automatique <span class="chart-tap-hint">toucher pour agrandir</span></p>
           <canvas id="baselineChart" width="300" height="70"></canvas>
+          <p class="chart-stat" id="baselineChartStat">σ = —</p>
         </div>
-        <p class="hint">Ces graphiques montrent un niveau relatif, pas un vrai dB SPL calibré (ça demanderait un micro de référence).</p>
+        <p class="hint">Ces graphiques montrent un niveau relatif, pas un vrai dB SPL calibré (ça demanderait un micro de référence). Un σ (écart-type) bas signifie que le bruit est stable.</p>
+      </div>
+
+      <div id="chartModal" class="chart-modal" hidden>
+        <div class="chart-modal-inner">
+          <div class="chart-modal-header">
+            <h2 id="chartModalTitle">—</h2>
+            <button id="chartModalClose" class="player-close" type="button" aria-label="Fermer">×</button>
+          </div>
+          <p id="chartModalAxis" class="chart-axis-label">—</p>
+          <canvas id="chartModalCanvas" width="640" height="280"></canvas>
+          <p id="chartModalReadout" class="chart-readout">Touche ou glisse sur le graphique pour voir une valeur précise.</p>
+          <p id="chartModalStats" class="chart-stats">—</p>
+        </div>
       </div>
 
       <details class="advanced">
