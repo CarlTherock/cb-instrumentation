@@ -1,6 +1,6 @@
 {
-  "name": "CB Alerte",
-  "short_name": "CB Alerte",
+  "name": "RADIO TEI",
+  "short_name": "RADIO TEI",
   "description": "Surveillance de mots-clés sur un haut-parleur CB.",
   "lang": "fr-CA",
   "start_url": "./",
