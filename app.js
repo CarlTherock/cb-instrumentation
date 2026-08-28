@@ -77,7 +77,7 @@
     if (!events.length) { ui.eventList.innerHTML = '<p class="empty">Aucune alerte pour le moment.</p>'; return; }
     ui.eventList.innerHTML = events.slice(0, 40).map(event => {
       const hasRecording = callRecordings.some(rec => rec.id === event.id);
-      return `<div class="event-item"><div><div class="event-word">⚠ ${escapeHtml(event.word)}</div><div class="event-text">${escapeHtml(event.text)}</div></div><div class="event-time">${escapeHtml(event.time)}${hasRecording ? `<button class="text-button replay-button" type="button" data-id="${event.id}">▶ RÉÉCOUTER</button>` : ''}</div></div>`;
+      return `<div class="event-item"><div><div class="event-word"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-warning"></use></svg>${escapeHtml(event.word)}</div><div class="event-text">${escapeHtml(event.text)}</div></div><div class="event-time">${escapeHtml(event.time)}${hasRecording ? `<button class="text-button replay-button" type="button" data-id="${event.id}">▶ RÉÉCOUTER</button>` : ''}</div></div>`;
     }).join('');
     ui.eventList.querySelectorAll('.replay-button').forEach(button => button.addEventListener('click', () => playStoredRecording(button.dataset.id)));
   }
@@ -392,9 +392,10 @@
   }
   function stopAlarmSound() { activeAlarmNodes.forEach(node => { try { node.stop(); } catch {} }); activeAlarmNodes = []; }
   async function playAlarmCycle() { const dur = await playAlarm(); const gap = settings.sound === 'appel' ? 400 : 100; alarmSoundInterval = setTimeout(playAlarmCycle, dur * 1000 + gap); }
-  function startAlarmSoundLoop() { playAlarmCycle(); }
+  function startAlarmSoundLoop() { stopAlarmSoundLoop(); playAlarmCycle(); }
   function stopAlarmSoundLoop() { if (alarmSoundInterval) { clearTimeout(alarmSoundInterval); alarmSoundInterval = null; } stopAlarmSound(); }
   function startVibrateLoop() {
+    stopVibrateLoop();
     try { navigator.vibrate?.([250, 120, 250, 120, 500]); } catch {}
     vibrateInterval = setInterval(() => { try { navigator.vibrate?.([250, 120, 250, 120, 500]); } catch {} }, 1300);
   }
@@ -410,6 +411,7 @@
     } catch (error) { console.warn('Lampe torche non disponible :', error); torchTrack = null; torchStream = null; }
   }
   function startTorchFlash() {
+    stopTorchFlash();
     if (!torchTrack) return;
     torchState = false;
     const toggle = async () => { torchState = !torchState; try { await torchTrack.applyConstraints({ advanced: [{ torch: torchState }] }); } catch {} };
@@ -645,6 +647,7 @@
     recognition.onend = () => { if (listening && !intentionalStop) { try { recognition.start(); } catch {} } };
   }
   async function startListening() {
+    if (listening) return;
     snoozeAlarm(); intentionalStop = false;
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error('Le microphone n’est pas accessible dans ce navigateur. Ouvre l’app avec Safari ou Chrome via HTTPS.');
@@ -664,6 +667,7 @@
   }
   async function stopListening() {
     intentionalStop = true; listening = false; try { recognition?.stop(); } catch {} recognition = null;
+    stopAlarmSoundLoop(); stopVibrateLoop(); stopTorchFlash();
     cancelAnimationFrame(animationId); stream?.getTracks().forEach(track => track.stop()); stream = null;
     teardownRecordingBuffer();
     releaseTorchTrack();
