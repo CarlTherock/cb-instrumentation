@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0b1220">
+  <meta name="theme-color" content="#151113">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="RADIO TEI">
+  <meta name="apple-mobile-web-app-title" content="CB">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-192.svg">
   <link rel="stylesheet" href="style.css">
-  <title>RADIO TEI</title>
+  <title>CB</title>
 </head>
 <body>
   <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false">
@@ -22,16 +22,17 @@
       <symbol id="icon-list" viewBox="0 0 24 24"><line x1="9" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/><line x1="4" y1="6" x2="4.01" y2="6"/><line x1="4" y1="12" x2="4.01" y2="12"/><line x1="4" y1="18" x2="4.01" y2="18"/></symbol>
       <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></symbol>
       <symbol id="icon-warning" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3Z"/><line x1="12" y1="9" x2="12" y2="14"/><line x1="12" y1="17.5" x2="12" y2="17.51"/></symbol>
+      <symbol id="icon-speaker" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></symbol>
     </defs>
   </svg>
   <div id="splashScreen" class="splash-screen">
-    <p class="splash-title">TEI</p>
-    <p class="splash-label">CTR</p>
+    <p class="splash-title">CB</p>
+    <p class="splash-label">by CTR</p>
   </div>
   <main class="app-shell" id="appShell" hidden>
     <header class="topbar-radio">
       <div class="brand">
-        <h1>RADIO TEI</h1>
+        <h1 class="brand-cb">CB</h1>
         <p class="brand-subtitle">Surveillance radio CB</p>
       </div>
       <div id="statusPill" class="status-pill status-off">ARRÊTÉ</div>
@@ -94,12 +95,13 @@
       </button>
       <div class="nav-main-wrap">
         <button id="startButton" class="nav-btn-main nav-btn-main--start" type="button" aria-label="Démarrer l’écoute">
-          <svg class="icon nav-main-icon-svg" aria-hidden="true"><use href="#icon-mic"></use></svg><span class="nav-main-label">DÉMARRER L’ÉCOUTE</span>
+          <svg class="icon nav-main-icon-svg" aria-hidden="true"><use href="#icon-mic"></use></svg>
         </button>
         <button id="stopButton" class="nav-btn-main nav-btn-main--stop" type="button" disabled hidden aria-label="Arrêter l’écoute">
-          <svg class="icon nav-main-icon-svg" aria-hidden="true"><use href="#icon-stop"></use></svg><span class="nav-main-label">ARRÊTER L’ÉCOUTE</span>
+          <svg class="icon nav-main-icon-svg" aria-hidden="true"><use href="#icon-stop"></use></svg>
         </button>
       </div>
+
       <button id="navWordsButton" class="nav-btn" type="button" aria-label="Mots">
         <svg class="icon nav-icon-svg" aria-hidden="true"><use href="#icon-list"></use></svg><span class="nav-label">Mots</span>
       </button>
@@ -247,6 +249,7 @@
             <button id="playerToggle" class="player-toggle" type="button" aria-label="Lecture/Pause">▶</button>
             <input id="playerSeek" class="player-seek" type="range" min="0" max="100" step="0.1" value="0">
             <span id="playerTime" class="player-time">0:00 / 0:00</span>
+            <button id="playerSpeakerToggle" class="player-toggle player-speaker active" type="button" aria-label="Haut-parleur"><svg class="icon icon-sm" aria-hidden="true"><use href="#icon-speaker"></use></svg></button>
             <button id="playerClose" class="player-close" type="button" aria-label="Fermer">×</button>
           </div>
           <div id="eventList" class="event-list"><p class="empty">Aucune alerte pour le moment.</p></div>
