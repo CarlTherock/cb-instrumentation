@@ -699,47 +699,62 @@
   ui.start.addEventListener('click', startListening); ui.stop.addEventListener('click', stopListening);
   ui.test.addEventListener('click', async () => { await ensureRunningAudioContext(); triggerAlarm('TEST D’ALARME', 'Test manuel effectué.'); });
   ui.diagnosticButton = $('diagnosticButton'); ui.diagnosticPanel = $('diagnosticPanel'); ui.diagnosticOutput = $('diagnosticOutput'); ui.diagnosticClose = $('diagnosticClose');
+  function isInsideScrollableOrHidden(el) {
+    let node = el.parentElement;
+    while (node) {
+      const style = getComputedStyle(node);
+      if (/(auto|scroll)/.test(style.overflowY) || node.hasAttribute('hidden') || style.display === 'none') return true;
+      node = node.parentElement;
+    }
+    return false;
+  }
   function runViewportDiagnostic() {
     const lines = [];
     lines.push(`window.innerHeight : ${window.innerHeight}`);
     lines.push(`window.innerWidth  : ${window.innerWidth}`);
+    lines.push(`screen.height (physique) : ${window.screen.height}`);
+    lines.push(`screen.availHeight       : ${window.screen.availHeight}`);
+    lines.push(`devicePixelRatio         : ${window.devicePixelRatio}`);
     lines.push(`visualViewport.h   : ${window.visualViewport ? Math.round(window.visualViewport.height) : 'n/a'}`);
     lines.push(`documentElement.clientHeight : ${document.documentElement.clientHeight}`);
     lines.push(`body.scrollHeight  : ${document.body.scrollHeight}`);
-    lines.push(`documentElement.scrollHeight : ${document.documentElement.scrollHeight}`);
     lines.push(`display-mode standalone : ${window.matchMedia('(display-mode: standalone)').matches}`);
     lines.push(`navigator.standalone    : ${window.navigator.standalone}`);
-    const cs = getComputedStyle(document.documentElement);
-    lines.push(`safe-area-inset-bottom (calc via test div) : mesuré ci-dessous`);
     const probe = document.createElement('div');
     probe.style.cssText = 'position:fixed;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom);visibility:hidden;';
     document.body.appendChild(probe);
     const probeHeight = probe.getBoundingClientRect().height;
     probe.remove();
     lines.push(`env(safe-area-inset-bottom) mesuré : ${Math.round(probeHeight)}px`);
+    const anyModalOpen = ['settingsModal', 'chartsModal', 'wordsModal', 'historyModal'].some(id => { const el = document.getElementById(id); return el && !el.hidden; });
+    lines.push(`panneau ouvert pendant la mesure : ${anyModalOpen ? 'OUI (peut fausser les résultats ci-dessous)' : 'non — écran principal seul'}`);
     const nav = document.querySelector('.bottom-nav');
     if (nav) {
       const rect = nav.getBoundingClientRect();
       lines.push('');
       lines.push('--- .bottom-nav ---');
       lines.push(`top=${Math.round(rect.top)} bottom=${Math.round(rect.bottom)} height=${Math.round(rect.height)}`);
-      lines.push(`écart entre bas du nav et bas de l'écran : ${Math.round(window.innerHeight - rect.bottom)}px`);
+      lines.push(`écart entre bas du nav et bas de l'écran (innerHeight) : ${Math.round(window.innerHeight - rect.bottom)}px`);
     }
     lines.push('');
-    lines.push('--- Éléments qui dépassent window.innerHeight ---');
+    lines.push('--- Éléments qui débordent réellement (hors zones qui défilent/cachées) ---');
     const overflowing = [];
     document.querySelectorAll('body *').forEach(el => {
       const rect = el.getBoundingClientRect();
-      if (rect.height > 0 && rect.bottom > window.innerHeight + 2) {
+      if (rect.height > 0 && rect.bottom > window.innerHeight + 2 && !isInsideScrollableOrHidden(el)) {
         const cls = typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).join('.') : '';
         overflowing.push(`${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}${cls} → bottom=${Math.round(rect.bottom)} height=${Math.round(rect.height)}`);
       }
     });
-    if (!overflowing.length) lines.push('(aucun élément ne dépasse — le HTML/CSS ne cause pas de débordement mesurable)');
+    if (!overflowing.length) lines.push('(aucun élément ne déborde réellement — le HTML/CSS ne cause pas de débordement mesurable)');
     else lines.push(...overflowing.slice(0, 20));
     return lines.join('\n');
   }
-  ui.diagnosticButton.addEventListener('click', () => { ui.diagnosticOutput.textContent = runViewportDiagnostic(); ui.diagnosticPanel.hidden = false; });
+  ui.diagnosticButton.addEventListener('click', () => {
+    const live = runViewportDiagnostic();
+    ui.diagnosticOutput.textContent = `=== AU DÉMARRAGE (écran principal, sans panneau) ===\n${startupDiagnostic || '(pas encore capturé)'}\n\n=== MAINTENANT (ce panneau est ouvert) ===\n${live}`;
+    ui.diagnosticPanel.hidden = false;
+  });
   ui.diagnosticClose.addEventListener('click', () => { ui.diagnosticPanel.hidden = true; });
   ui.silence.addEventListener('click', snoozeAlarm);
   ui.snoozeListen.addEventListener('click', async () => {
@@ -854,9 +869,11 @@
 
   renderGraphStats();
   renderKeywords(); renderEvents(); setStatus(false, 'Prêt à écouter le haut-parleur CB.');
+  let startupDiagnostic = '';
   setTimeout(() => {
     ui.appShell.hidden = false;
     ui.splashScreen.classList.add('splash-hide');
     setTimeout(() => { ui.splashScreen.remove(); }, 550);
+    setTimeout(() => { startupDiagnostic = runViewportDiagnostic(); }, 300);
   }, 5000);
 })();
