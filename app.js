@@ -13,7 +13,7 @@
     { phrase: 'Instrumentiste', variants: ['instrumentistes'], mode: 'immediate' },
     { phrase: 'Instrumentation', variants: ['instrumentations'], mode: 'immediate' },
     { phrase: 'Technicien', variants: ['techniciens'], mode: 'context' },
-    { phrase: 'Instrument', variants: ['instruments'], mode: 'context' }
+    { phrase: 'Instrument', variants: ['instruments'], mode: 'immediate' }
   ];
 
   const $ = id => document.getElementById(id);
@@ -33,7 +33,7 @@
     keywordForm: $('keywordForm'), phraseInput: $('phraseInput'), variantsInput: $('variantsInput'), modeInput: $('modeInput'), keywordList: $('keywordList'),
     alarmPanel: $('alarmPanel'), alarmWord: $('alarmWord'), alarmDetail: $('alarmDetail'), silence: $('silenceButton'),
     snoozePanel: $('snoozeConfirmPanel'), snoozeText: $('snoozeConfirmText'), snoozeListen: $('snoozeListenButton'), snoozeAck: $('snoozeAckButton'),
-    player: $('recordingPlayer'), playerToggle: $('playerToggle'), playerSeek: $('playerSeek'), playerTime: $('playerTime'), playerClose: $('playerClose'),
+    player: $('recordingPlayer'), playerToggle: $('playerToggle'), playerSeek: $('playerSeek'), playerTime: $('playerTime'), playerClose: $('playerClose'), playerSpeaker: $('playerSpeakerToggle'),
     eventList: $('eventList'), clearHistory: $('clearHistoryButton'),
     navSettings: $('navSettingsButton'), navCharts: $('navChartsButton'), navWords: $('navWordsButton'), navHistory: $('navHistoryButton'),
     settingsModal: $('settingsModal'), settingsClose: $('settingsCloseButton'),
@@ -44,6 +44,14 @@
   };
 
   let keywords = load(STORAGE_KEY, DEFAULT_KEYWORDS).map((item, index) => ({ id: item.id || `${Date.now()}-${index}`, ...item }));
+  {
+    let migrated = false;
+    keywords = keywords.map(item => {
+      if (normalize(item.phrase).trim() === 'instrument' && item.mode === 'context') { migrated = true; return { ...item, mode: 'immediate' }; }
+      return item;
+    });
+    if (migrated) save(STORAGE_KEY, keywords);
+  }
   let settings = load(SETTINGS_KEY, { language: 'fr-CA', cooldown: 0, sound: 'police', vibrate: true, sensitive: false, meterSensitivity: 5 });
   let events = load(HISTORY_KEY, []);
   let recognition, stream, audioContext, analyser, audioData, animationId, wakeLock, alarmBus;
@@ -54,6 +62,7 @@
   let callRecordings = [];
   let lastTriggerId = null, lastTriggerRecentText = '';
   let playerBuffer = null, playerSource = null, playerOffset = 0, playerStartedAt = 0, playerIsPlaying = false, playerRAF = null;
+  let loudspeakerOn = true, quietBus = null;
   let ambientSamples = [], ambientBaseline = 6, ambientSampleInterval = null;
   let baselineHistory = [], lastLevelSamples = [], lastFreqSnapshot = [], lastFreqSampleRate = 44100, chartsVisible = false;
   let chartModalData = null, chartModalDragging = false;
@@ -180,11 +189,20 @@
     updatePlayerTimeLabel();
     await playerPlay();
   }
+  function getPlaybackBus(ctx) {
+    if (loudspeakerOn) return getAlarmBus(ctx);
+    if (!quietBus || quietBus.ctx !== ctx) { const gain = ctx.createGain(); gain.gain.value = 0.5; gain.connect(ctx.destination); quietBus = { ctx, node: gain }; }
+    return quietBus.node;
+  }
+  async function stopListeningForPlayback() {
+    if (listening) { ui.statusText.textContent = 'Écoute arrêtée automatiquement pour éviter que la réécoute redéclenche une alarme.'; await stopListening(); return true; }
+    return false;
+  }
   async function playerPlay() {
     if (!playerBuffer) return;
     await ensureRunningAudioContext();
     stopPlayerSource();
-    const ctx = audioContext; const bus = getAlarmBus(ctx);
+    const ctx = audioContext; const bus = getPlaybackBus(ctx);
     const source = ctx.createBufferSource(); source.buffer = playerBuffer;
     source.connect(bus);
     source.start(ctx.currentTime, Math.min(playerOffset, playerBuffer.duration - 0.01));
@@ -218,6 +236,7 @@
   async function playStoredRecording(id) {
     const rec = callRecordings.find(item => item.id === id);
     if (!rec) return;
+    await stopListeningForPlayback();
     await ensureRunningAudioContext();
     await openPlayer(bufferFromSnapshot(audioContext, rec.data, rec.sampleRate));
   }
@@ -233,8 +252,8 @@
   function getAlarmBus(ctx) {
     if (!alarmBus || alarmBus.ctx !== ctx) {
       const compressor = ctx.createDynamicsCompressor();
-      compressor.threshold.value = -20; compressor.knee.value = 10; compressor.ratio.value = 12; compressor.attack.value = 0.003; compressor.release.value = 0.15;
-      const boost = ctx.createGain(); boost.gain.value = 2.2;
+      compressor.threshold.value = -26; compressor.knee.value = 8; compressor.ratio.value = 18; compressor.attack.value = 0.002; compressor.release.value = 0.12;
+      const boost = ctx.createGain(); boost.gain.value = 3.4;
       compressor.connect(boost).connect(ctx.destination);
       alarmBus = { ctx, input: compressor };
     }
@@ -683,13 +702,18 @@
   ui.snoozeListen.addEventListener('click', async () => {
     const rec = callRecordings.find(item => item.id === lastTriggerId);
     ui.snoozePanel.hidden = true;
-    if (rec) { await ensureRunningAudioContext(); await openPlayer(bufferFromSnapshot(audioContext, rec.data, rec.sampleRate)); }
+    if (rec) { await stopListeningForPlayback(); await ensureRunningAudioContext(); await openPlayer(bufferFromSnapshot(audioContext, rec.data, rec.sampleRate)); }
     else if (!listening && audioContext) { try { audioContext.close(); } catch {} audioContext = null; }
   });
   ui.snoozeAck.addEventListener('click', finalizeSnooze);
   ui.playerToggle.addEventListener('click', () => { if (playerIsPlaying) playerPause(); else playerPlay(); });
   ui.playerSeek.addEventListener('input', () => { playerOffset = Number(ui.playerSeek.value); updatePlayerTimeLabel(); if (playerIsPlaying) playerPlay(); });
   ui.playerClose.addEventListener('click', closePlayer);
+  ui.playerSpeaker.addEventListener('click', () => {
+    loudspeakerOn = !loudspeakerOn;
+    ui.playerSpeaker.classList.toggle('active', loudspeakerOn);
+    if (playerIsPlaying) playerPlay();
+  });
   ui.clearTranscript.addEventListener('click', () => { transcriptRows = []; ui.transcriptHistory.innerHTML = ''; ui.live.textContent = listening ? 'Écoute en cours…' : 'En attente d’une transmission radio…'; });
   ui.clearHistory.addEventListener('click', () => { if (!confirm('Effacer tout l’historique des alertes ?')) return; events = []; save(HISTORY_KEY, events); renderEvents(); renderGraphStats(); });
   ui.ambientButton.addEventListener('click', measureAmbientNoise);
