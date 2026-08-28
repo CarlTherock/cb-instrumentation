@@ -96,6 +96,31 @@ Tout est stocké localement sur l'appareil (`localStorage`) : mots-clés, régla
 - Mot-clé « Instrument » passé de « contexte » à « immédiat » par défaut, avec migration automatique des mots déjà enregistrés sur l'appareil
 - CSS durci pour éliminer une bande non couverte par le thème sombre en bas de l'écran (zone sécurisée iPhone)
 
+### Phase 7 — Résolution définitive de la bande noire en bas (bug WebKit #254868)
+
+**Symptôme** : une bande noire (~59px) restait visible en bas de l'écran principal, sous la barre de navigation, uniquement quand l'app était installée sur l'écran d'accueil (mode standalone) — jamais dans un onglet Safari normal.
+
+**Cause réelle, confirmée par mesure directe sur l'appareil** : c'est un vrai bug WebKit actif, documenté sous [bugs.webkit.org #254868](https://bugs.webkit.org/show_bug.cgi?id=254868) — « Incorrect height values when viewport-fit=cover is set for installed web apps ». En mode PWA standalone avec `viewport-fit=cover`, iOS fait en sorte que `100dvh`, `100svh`, `visualViewport.height`, `window.innerHeight` et `-webkit-fill-available` **soustraient tous la zone sécurisée du bas** de la valeur retournée — alors que `100vh` (habituellement le moins fiable des trois sur mobile) est, dans ce mode précis, le seul qui retourne la vraie hauteur physique de l'écran.
+
+Confirmé par diagnostic sur l'appareil de Carl (iPhone, écran 852px physique) :
+- Avant le correctif : `100dvh` = `100svh` = `window.innerHeight` = **793px** (manque exactement 59px, la zone sécurisée)
+- `100vh` = **852px** (correct, dès le début)
+
+**Correctif appliqué** (`style.css`) — bascule vers `100vh` uniquement en mode standalone, comme recommandé dans le fil de discussion du bug WebKit :
+```css
+@media all and (display-mode: standalone) {
+  html, body { height:100vh; min-height:100vh; }
+  .app-shell { min-height:100vh; }
+}
+```
+En Safari normal (non installé), le comportement reste inchangé (`100dvh`/`-webkit-fill-available`), qui fonctionne correctement dans ce contexte.
+
+**Ne pas re-« corriger » ceci à l'avenir** : si la bande réapparaît après une mise à jour d'iOS, vérifier d'abord si Apple a corrigé le bug #254868 lui-même (auquel cas `100vh` en standalone redeviendrait inutile ou pourrait nécessiter un ajustement) avant de toucher à autre chose. Le panneau **Réglages → DIAGNOSTIC AFFICHAGE** dans l'app permet de mesurer `100vh`/`100dvh`/`100svh` directement sur l'appareil pour vérifier en 10 secondes si le problème est réapparu.
+
+---
+
+## Limites connues
+
 ---
 
 ## Points de restauration (commits GitHub)
