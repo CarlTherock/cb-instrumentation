@@ -42,6 +42,7 @@
   let callRecordings = [];
   let lastTriggerId = null, lastTriggerRecentText = '';
   let playerBuffer = null, playerSource = null, playerOffset = 0, playerStartedAt = 0, playerIsPlaying = false, playerRAF = null;
+  let ambientSamples = [], ambientBaseline = 6, ambientSampleInterval = null;
 
   function load(key, fallback) { try { const value = JSON.parse(localStorage.getItem(key)); return value ?? fallback; } catch { return fallback; } }
   function save(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
@@ -430,13 +431,30 @@
   }
   async function requestWakeLock() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch {} }
   async function releaseWakeLock() { try { await wakeLock?.release(); } catch {} wakeLock = null; }
+  function getMeterThreshold() {
+    const margin = 12 - Number(settings.meterSensitivity || 5);
+    return Math.min(90, Math.max(1, ambientBaseline + margin));
+  }
+  function sampleAmbientBaseline() {
+    if (!analyser || !listening) return;
+    analyser.getByteTimeDomainData(audioData);
+    let total = 0; for (const value of audioData) { const n = (value - 128) / 128; total += n * n; }
+    const rms = Math.sqrt(total / audioData.length); const level = Math.min(100, Math.max(0, rms * 650));
+    ambientSamples.push(level);
+    if (ambientSamples.length > 240) ambientSamples.shift();
+    if (ambientSamples.length >= 20 && ambientSamples.length % 20 === 0) {
+      const sorted = [...ambientSamples].sort((a, b) => a - b);
+      const median = sorted[Math.floor(sorted.length / 2)];
+      ambientBaseline = ambientBaseline * 0.6 + median * 0.4;
+    }
+  }
   function updateMeter() {
     if (!analyser || !listening) return;
     analyser.getByteTimeDomainData(audioData);
     let total = 0; for (const value of audioData) { const n = (value - 128) / 128; total += n * n; }
     const rms = Math.sqrt(total / audioData.length); const level = Math.min(100, Math.max(0, rms * 650));
     ui.meterFill.style.width = `${level}%`;
-    const threshold = 11 - Number(settings.meterSensitivity || 5);
+    const threshold = getMeterThreshold();
     const active = level > threshold; ui.signalDot.classList.toggle('active', active); ui.signalText.textContent = active ? 'Son détecté' : 'Silence';
     animationId = requestAnimationFrame(updateMeter);
   }
@@ -456,7 +474,7 @@
       const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
       const max = Math.max(...samples);
       const verdict = avg < 8 ? 'calme' : avg < 20 ? 'modéré' : 'bruyant';
-      ui.ambientResult.textContent = `Bruit ambiant : ${avg.toFixed(0)}% en moyenne (pic ${max.toFixed(0)}%) — ${verdict}. Seuil actuel du détecteur : ${11 - Number(settings.meterSensitivity || 5)}%.`;
+      ui.ambientResult.textContent = `Bruit ambiant (instantané) : ${avg.toFixed(0)}% en moyenne (pic ${max.toFixed(0)}%) — ${verdict}. Référence auto-calibrée : ${ambientBaseline.toFixed(0)}%. Seuil actuel du détecteur : ${getMeterThreshold().toFixed(0)}%.`;
       ui.ambientResult.hidden = false;
       ambientMeasuring = false; ui.ambientButton.disabled = false; ui.ambientButton.textContent = 'MESURER LE BRUIT AMBIANT';
     };
@@ -488,10 +506,15 @@
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true } });
       audioContext = new (window.AudioContext || window.webkitAudioContext)(); await audioContext.resume();
       analyser = audioContext.createAnalyser(); analyser.fftSize = 1024; audioData = new Uint8Array(analyser.fftSize);
-      const sourceNode = audioContext.createMediaStreamSource(stream); sourceNode.connect(analyser);
+      const sourceNode = audioContext.createMediaStreamSource(stream);
+      const voiceHighpass = audioContext.createBiquadFilter(); voiceHighpass.type = 'highpass'; voiceHighpass.frequency.value = 300; voiceHighpass.Q.value = 0.7;
+      const voiceLowpass = audioContext.createBiquadFilter(); voiceLowpass.type = 'lowpass'; voiceLowpass.frequency.value = 3400; voiceLowpass.Q.value = 0.7;
+      sourceNode.connect(voiceHighpass).connect(voiceLowpass).connect(analyser);
       setupRecordingBuffer(audioContext, sourceNode);
       setupRecognition(); listening = true; setStatus(true, 'Microphone et reconnaissance vocale actifs.'); await requestWakeLock(); updateMeter(); recognition.start();
       acquireTorchTrack();
+      ambientSamples = []; ambientBaseline = 6;
+      ambientSampleInterval = setInterval(sampleAmbientBaseline, 1000);
     } catch (error) { console.error(error); ui.statusText.textContent = error.message || 'Impossible de démarrer l’écoute.'; stopListening(); }
   }
   async function stopListening() {
@@ -499,6 +522,7 @@
     cancelAnimationFrame(animationId); stream?.getTracks().forEach(track => track.stop()); stream = null;
     teardownRecordingBuffer();
     releaseTorchTrack();
+    if (ambientSampleInterval) { clearInterval(ambientSampleInterval); ambientSampleInterval = null; }
     try { await audioContext?.close(); } catch {} audioContext = null; analyser = null;
     await releaseWakeLock(); ui.meterFill.style.width = '0%'; ui.signalDot.classList.remove('active'); ui.signalText.textContent = 'Silence'; setStatus(false, 'Écoute arrêtée.');
   }
