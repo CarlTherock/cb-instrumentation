@@ -19,8 +19,10 @@
   const ui = {
     statusPill: $('statusPill'), statusText: $('statusText'), signalDot: $('signalDot'), signalText: $('signalText'),
     meterFill: $('meterFill'), start: $('startButton'), stop: $('stopButton'), test: $('testButton'),
+    ambientButton: $('ambientButton'), ambientResult: $('ambientResult'),
     splashScreen: $('splashScreen'), appShell: $('appShell'),
-    language: $('languageSelect'), soundSelect: $('soundSelect'), vibrateToggle: $('vibrateToggle'), cooldown: $('cooldownRange'), cooldownValue: $('cooldownValue'),
+    language: $('languageSelect'), sensitiveToggle: $('sensitiveToggle'), meterSensitivity: $('meterSensitivityRange'), meterSensitivityValue: $('meterSensitivityValue'),
+    soundSelect: $('soundSelect'), vibrateToggle: $('vibrateToggle'), cooldown: $('cooldownRange'), cooldownValue: $('cooldownValue'),
     live: $('transcriptLive'), transcriptHistory: $('transcriptHistory'), clearTranscript: $('clearTranscriptButton'),
     keywordForm: $('keywordForm'), phraseInput: $('phraseInput'), variantsInput: $('variantsInput'), modeInput: $('modeInput'), keywordList: $('keywordList'),
     alarmPanel: $('alarmPanel'), alarmWord: $('alarmWord'), alarmDetail: $('alarmDetail'), silence: $('silenceButton'),
@@ -30,7 +32,7 @@
   };
 
   let keywords = load(STORAGE_KEY, DEFAULT_KEYWORDS).map((item, index) => ({ id: item.id || `${Date.now()}-${index}`, ...item }));
-  let settings = load(SETTINGS_KEY, { language: 'fr-CA', cooldown: 0, sound: 'police', vibrate: true });
+  let settings = load(SETTINGS_KEY, { language: 'fr-CA', cooldown: 0, sound: 'police', vibrate: true, sensitive: false, meterSensitivity: 5 });
   let events = load(HISTORY_KEY, []);
   let recognition, stream, audioContext, analyser, audioData, animationId, wakeLock, alarmBus;
   let listening = false, intentionalStop = false, lastAlarmAt = 0, contextHits = [], transcriptRows = [];
@@ -75,8 +77,16 @@
     const clean = normalize(text);
     return keywords.filter(keyword => matchKeyword(keyword, clean));
   }
+  let lastInterimTriggerId = null;
+  function processInterimText(text) {
+    if (!text.trim()) return;
+    const matches = getMatches(text);
+    const immediate = matches.find(item => item.mode === 'immediate');
+    if (immediate && immediate.id !== lastInterimTriggerId) { lastInterimTriggerId = immediate.id; triggerAlarm(immediate.phrase, text); }
+  }
   function processFinalText(text) {
     if (!text.trim()) return;
+    lastInterimTriggerId = null;
     appendTranscript(text, true);
     const matches = getMatches(text);
     const immediate = matches.find(item => item.mode === 'immediate');
@@ -426,8 +436,31 @@
     let total = 0; for (const value of audioData) { const n = (value - 128) / 128; total += n * n; }
     const rms = Math.sqrt(total / audioData.length); const level = Math.min(100, Math.max(0, rms * 650));
     ui.meterFill.style.width = `${level}%`;
-    const active = level > 5; ui.signalDot.classList.toggle('active', active); ui.signalText.textContent = active ? 'Son détecté' : 'Silence';
+    const threshold = 11 - Number(settings.meterSensitivity || 5);
+    const active = level > threshold; ui.signalDot.classList.toggle('active', active); ui.signalText.textContent = active ? 'Son détecté' : 'Silence';
     animationId = requestAnimationFrame(updateMeter);
+  }
+  let ambientMeasuring = false;
+  function measureAmbientNoise() {
+    if (!analyser || !listening) { alert('Démarre l’écoute avant de mesurer le bruit ambiant.'); return; }
+    if (ambientMeasuring) return;
+    ambientMeasuring = true;
+    ui.ambientButton.disabled = true; ui.ambientButton.textContent = 'MESURE EN COURS…';
+    const samples = []; const duration = 3000; const start = performance.now();
+    const sample = () => {
+      analyser.getByteTimeDomainData(audioData);
+      let total = 0; for (const value of audioData) { const n = (value - 128) / 128; total += n * n; }
+      const rms = Math.sqrt(total / audioData.length);
+      samples.push(Math.min(100, Math.max(0, rms * 650)));
+      if (performance.now() - start < duration) { requestAnimationFrame(sample); return; }
+      const avg = samples.reduce((a, b) => a + b, 0) / samples.length;
+      const max = Math.max(...samples);
+      const verdict = avg < 8 ? 'calme' : avg < 20 ? 'modéré' : 'bruyant';
+      ui.ambientResult.textContent = `Bruit ambiant : ${avg.toFixed(0)}% en moyenne (pic ${max.toFixed(0)}%) — ${verdict}. Seuil actuel du détecteur : ${11 - Number(settings.meterSensitivity || 5)}%.`;
+      ui.ambientResult.hidden = false;
+      ambientMeasuring = false; ui.ambientButton.disabled = false; ui.ambientButton.textContent = 'MESURER LE BRUIT AMBIANT';
+    };
+    sample();
   }
   function setupRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -435,7 +468,11 @@
     recognition = new SpeechRecognition(); recognition.lang = settings.language; recognition.continuous = true; recognition.interimResults = true; recognition.maxAlternatives = 1;
     recognition.onresult = event => {
       let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) { const text = event.results[i][0].transcript.trim(); if (event.results[i].isFinal) processFinalText(text); else interim += `${text} `; }
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const text = event.results[i][0].transcript.trim();
+        if (event.results[i].isFinal) processFinalText(text);
+        else { interim += `${text} `; if (settings.sensitive) processInterimText(text); }
+      }
       if (interim) appendTranscript(interim.trim(), false);
     };
     recognition.onerror = event => {
@@ -482,11 +519,18 @@
   ui.playerClose.addEventListener('click', closePlayer);
   ui.clearTranscript.addEventListener('click', () => { transcriptRows = []; ui.transcriptHistory.innerHTML = ''; ui.live.textContent = listening ? 'Écoute en cours…' : 'L’écoute n’est pas démarrée.'; });
   ui.clearHistory.addEventListener('click', () => { events = []; save(HISTORY_KEY, events); renderEvents(); });
+  ui.ambientButton.addEventListener('click', measureAmbientNoise);
   ui.language.value = settings.language; ui.soundSelect.value = settings.sound; ui.cooldown.value = settings.cooldown; ui.cooldownValue.textContent = `${settings.cooldown} s`;
   ui.vibrateToggle.checked = settings.vibrate !== false;
+  ui.sensitiveToggle.checked = !!settings.sensitive;
+  ui.meterSensitivity.value = settings.meterSensitivity || 5;
+  const sensitivityLabels = { 1: 'Très basse', 2: 'Basse', 3: 'Basse', 4: 'Normale-', 5: 'Normale', 6: 'Normale+', 7: 'Haute', 8: 'Haute', 9: 'Très haute', 10: 'Maximale' };
+  ui.meterSensitivityValue.textContent = sensitivityLabels[settings.meterSensitivity || 5];
   ui.language.addEventListener('change', () => { settings.language = ui.language.value; save(SETTINGS_KEY, settings); });
   ui.soundSelect.addEventListener('change', () => { settings.sound = ui.soundSelect.value; save(SETTINGS_KEY, settings); });
   ui.vibrateToggle.addEventListener('change', () => { settings.vibrate = ui.vibrateToggle.checked; save(SETTINGS_KEY, settings); });
+  ui.sensitiveToggle.addEventListener('change', () => { settings.sensitive = ui.sensitiveToggle.checked; save(SETTINGS_KEY, settings); });
+  ui.meterSensitivity.addEventListener('input', () => { settings.meterSensitivity = Number(ui.meterSensitivity.value); ui.meterSensitivityValue.textContent = sensitivityLabels[settings.meterSensitivity]; save(SETTINGS_KEY, settings); });
   ui.cooldown.addEventListener('input', () => { settings.cooldown = Number(ui.cooldown.value); ui.cooldownValue.textContent = `${settings.cooldown} s`; save(SETTINGS_KEY, settings); });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && listening) requestWakeLock(); });
   window.addEventListener('beforeunload', () => { if (listening) stopListening(); });
