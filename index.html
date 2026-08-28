@@ -69,8 +69,24 @@
       </div>
       <div class="button-row">
         <button id="ambientButton" class="button button-secondary" type="button">MESURER LE BRUIT AMBIANT</button>
+        <button id="ambientChartsToggle" class="button button-secondary" type="button">AFFICHER LES GRAPHIQUES</button>
       </div>
       <p id="ambientResult" class="hint ambient-result" hidden></p>
+      <div id="ambientCharts" class="ambient-charts" hidden>
+        <div class="chart-block">
+          <p class="chart-label">Niveau relatif — dernière mesure (%)</p>
+          <canvas id="levelChart" width="300" height="70"></canvas>
+        </div>
+        <div class="chart-block">
+          <p class="chart-label">Spectre de fréquences — dernière mesure (0 à ~4300 Hz, amplitude relative)</p>
+          <canvas id="freqChart" width="300" height="70"></canvas>
+        </div>
+        <div class="chart-block">
+          <p class="chart-label">Stabilisation de la calibration automatique</p>
+          <canvas id="baselineChart" width="300" height="70"></canvas>
+        </div>
+        <p class="hint">Ces graphiques montrent un niveau relatif, pas un vrai dB SPL calibré (ça demanderait un micro de référence).</p>
+      </div>
 
       <details class="advanced">
         <summary>Réglages d’écoute</summary>
